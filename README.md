@@ -17,7 +17,7 @@ This is a bridge for local automation. It does not modify the upstream `agent-br
 - `tools/daemon.mjs` local daemon
 - `tools/bridge.mjs` thin CLI client
 - `releases/vX.Y.Z.zip` versioned extension package
-- `releases-unzip/vX.Y.Z/` latest unpacked extension package
+- `releases-unzip/latest-version/` stable unpacked extension package
 
 ## One-Time Setup
 
@@ -38,7 +38,7 @@ npm run build
 - Open `chrome://extensions/`
 - Enable Developer Mode
 - Click `Load unpacked`
-- Select the latest folder under `releases-unzip/`, or select this repo folder's `chrome-extension/` directory after building
+- Select `releases-unzip/latest-version/`, or select this repo folder's `chrome-extension/` directory after building
 - Open the extension details page and enable `Allow in Incognito`
 
 Once installed, the extension service worker will keep trying to connect to the local daemon on `127.0.0.1:19826`.
@@ -91,8 +91,8 @@ This produces one versioned extension zip and refreshes the latest unpacked dire
 
 - `releases/vX.Y.Z.zip`
   Extension archive with `manifest.json` at the zip root.
-- `releases-unzip/vX.Y.Z/`
-  Latest unpacked extension for `Load unpacked`.
+- `releases-unzip/latest-version/`
+  Stable unpacked extension path for `Load unpacked`.
 
 For Chrome local development, the reliable path is still:
 
@@ -100,4 +100,4 @@ For Chrome local development, the reliable path is still:
 2. Open `chrome://extensions/`
 3. Enable Developer Mode
 4. Click `Load unpacked`
-5. Select the latest folder under `releases-unzip/`
+5. Select `releases-unzip/latest-version/`

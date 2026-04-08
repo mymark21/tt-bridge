@@ -28,7 +28,7 @@ if (manifest.version !== packageJson.version) {
 
 const versionTag = `v${manifest.version}`;
 const zipPath = path.join(releasesDir, `${versionTag}.zip`);
-const unpackedDir = path.join(releasesUnzipDir, versionTag);
+const unpackedDir = path.join(releasesUnzipDir, 'latest-version');
 
 function stageExtension(targetDir) {
   fs.mkdirSync(targetDir, { recursive: true });
@@ -39,8 +39,10 @@ function stageExtension(targetDir) {
 
 function packageExtension() {
   fs.mkdirSync(releasesDir, { recursive: true });
-  fs.rmSync(releasesUnzipDir, { recursive: true, force: true });
   fs.mkdirSync(releasesUnzipDir, { recursive: true });
+  for (const entry of fs.readdirSync(releasesUnzipDir)) {
+    fs.rmSync(path.join(releasesUnzipDir, entry), { recursive: true, force: true });
+  }
   fs.rmSync(zipPath, { force: true });
 
   const stagingRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'tt-brower-bridge-'));
