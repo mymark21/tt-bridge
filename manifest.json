@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TT-brower-bridge",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Persistent browser bridge for local AI agents. Avoid repeated Chrome takeover prompts by routing commands through an installed extension.",
   "permissions": [
     "debugger",
