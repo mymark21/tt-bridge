@@ -145,7 +145,7 @@ async function refreshPortSelection(trigger: 'startup' | 'popup' | 'start' | 're
     await persistRuntimeConfig();
   }
 
-  if (!servingEnabled || trigger === 'popup') {
+  if (!servingEnabled) {
     setBridgeStatus('idle', buildIdleStatus(scan, configuredPort));
   }
 
@@ -753,9 +753,17 @@ export const __test__ = {
   startServing,
   stopServing,
   refreshPortSelection,
+  getConnectionState: () => connectionState,
+  getStatusText: () => statusText,
   getConfiguredPort: () => configuredPort,
   setConfiguredPort: (port: number) => {
     configuredPort = port;
+  },
+  setServingEnabled: (enabled: boolean) => {
+    servingEnabled = enabled;
+  },
+  setBridgeStatusForTest: (nextState: ConnectionState, nextStatusText: string) => {
+    setBridgeStatus(nextState, nextStatusText);
   },
   getAutomationWindowId: (workspace: string = 'default') => automationSessions.get(workspace)?.windowId ?? null,
   setAutomationWindowId: (workspace: string, windowId: number | null) => {

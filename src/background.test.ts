@@ -212,4 +212,22 @@ describe('background tab isolation', () => {
       expect.objectContaining({ workspace: 'site:zhihu', windowId: 2, incognito: false }),
     ]));
   });
+
+  it('keeps waiting status when popup opens during serving mode', async () => {
+    const { chrome } = createChromeMock();
+    vi.stubGlobal('chrome', chrome);
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new Error('offline');
+    }));
+
+    const mod = await import('./background');
+    mod.__test__.setServingEnabled(true);
+    mod.__test__.setConfiguredPort(19826);
+    mod.__test__.setBridgeStatusForTest('waiting', 'Waiting for local daemon on 19826.');
+
+    await mod.__test__.refreshPortSelection('popup');
+
+    expect(mod.__test__.getConnectionState()).toBe('waiting');
+    expect(mod.__test__.getStatusText()).toBe('Waiting for local daemon on 19826.');
+  });
 });
