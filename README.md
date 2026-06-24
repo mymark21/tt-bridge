@@ -161,20 +161,4 @@ tt-bridge open "https://example.com" --workspace mytask
 tt-bridge close-window --workspace mytask
 ```
 
-### 最佳实践
-
-1. **需要结构化输出时加 `--json`**
-2. **默认就在人的浏览器窗口操作** — 不用加额外参数
-3. **用 `--workspace` 隔离任务** — 需要后台自动化时创建独立无痕窗口
-4. **需要返回值用 `eval`** — `click` 是 fire-and-forget
-5. **截图用 `--full-page`** 捕获完整页面
-
-### 故障排除
-
-| 症状 | 原因 | 解决 |
-|---|---|---|
-| `Daemon is not running` | 空闲超时 | 再跑任意命令即自动启动 |
-| `Extension not connected` | 扩展未服务 | 让人点扩展图标 → Start Serving |
-| `Another debugger is already attached` | 另有扩展占用 CDP | 让人禁用其他调试类扩展 |
-| `Allow in Incognito` 错误 | 权限未开启 | 让人在扩展详情中启用 |
 <!-- END AGENT INSTRUCTIONS -->
