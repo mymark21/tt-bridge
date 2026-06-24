@@ -14,16 +14,18 @@
 
 ## 安装
 
-**把这两个文件丢给你的 AI（Claude Code、Cursor 都行），然后说：**
+**把下面这段复制给你的 AI（Claude Code、Codex 都行）：**
 
-> "帮我安装 TT Bridge"
+> 项目地址：`https://github.com/mymark21/tt-bridge`
+>
+> 帮我安装 TT Bridge
 
-就这么简单。AI 会自己读文件、自己装，不需要你动脑子。
+就这么简单。AI 会自己读项目、自己装，不需要你动脑子。
 
 | 文件 | 下载 | 说明 |
 |---|---|---|
-| CLI + Daemon | [tt-bridge-cli.zip](https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-cli.zip) | 命令行工具，解压后全局安装 |
-| Chrome 扩展 | [tt-bridge-extension.zip](https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-extension.zip) | Chrome 扩展包，解压后加载到 Chrome |
+| CLI + Daemon | [下载](https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-cli.zip) | 命令行工具，解压后全局安装 |
+| Chrome 扩展 | [下载](https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-extension.zip) | Chrome 扩展包，解压后加载到 Chrome |
 
 ---
 
