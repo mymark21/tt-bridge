@@ -22,8 +22,8 @@
 
 | 文件 | 下载 | 说明 |
 |---|---|---|
-| CLI + Daemon | [tt-bridge-cli.zip](./tt-bridge-cli.zip) | 命令行工具，解压后全局安装 |
-| Chrome 扩展 | [tt-bridge-extension.zip](./tt-bridge-extension.zip) | Chrome 扩展包，解压后加载到 Chrome |
+| CLI + Daemon | [tt-bridge-cli.zip](https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-cli.zip) | 命令行工具，解压后全局安装 |
+| Chrome 扩展 | [tt-bridge-extension.zip](https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-extension.zip) | Chrome 扩展包，解压后加载到 Chrome |
 
 ---
 
