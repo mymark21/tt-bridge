@@ -66,52 +66,76 @@ tt-bridge eval "document.title"
 
 逐步执行，每步汇报进度。
 
-**第 1 步 — 安装 CLI**
+**第 1 步 — 确保 Node.js 已安装（≥ 18）**
 
 ```bash
-cd /tmp && unzip -o /path/to/tt-bridge-cli.zip -d tt-bridge-cli && cd tt-bridge-cli && npm install -g .
+node --version
 ```
 
-如果人类把 zip 下载到了其他位置，替换 `/path/to/` 为实际路径（通常是 `~/Downloads/tt-bridge-cli.zip`）。没有 npm 就让人先装 Node.js（≥ 18）。
+如果没装：
 
-验证安装成功：
+```bash
+# Mac
+brew install node
+# 或去 https://nodejs.org 下载安装包
+```
+
+**第 2 步 — 安装 CLI**
+
+先找到人类下载的 `tt-bridge-cli.zip` 路径（通常在 `~/Downloads/`）：
+
+```bash
+cd /tmp && unzip -o ~/Downloads/tt-bridge-cli.zip -d tt-bridge-cli && cd tt-bridge-cli && npm install -g .
+```
+
+如果路径不对，用 `ls ~/Downloads/tt-bridge*` 确认实际路径。
+
+验证：
 
 ```bash
 which tt-bridge && tt-bridge --help
 ```
 
-**第 2 步 — 安装 Chrome 扩展**
+**第 3 步 — 安装 Chrome 扩展**
+
+找到 `tt-bridge-extension.zip`，解压：
 
 ```bash
-# 解压扩展包
-mkdir -p /tmp/tt-bridge-extension && cd /tmp && unzip -o /path/to/tt-bridge-extension.zip -d tt-bridge-extension
+mkdir -p /tmp/tt-bridge-extension && cd /tmp && unzip -o ~/Downloads/tt-bridge-extension.zip -d tt-bridge-extension
 ```
 
-然后告诉人类：
+然后告诉人类（逐字显示）：
 
-> 现在需要你在 Chrome 中加载扩展，按以下步骤操作：
+> 现在需要在 Chrome 中加载扩展：
 >
-> 1. 打开 **chrome://extensions/**
-> 2. 打开右上角 **开发者模式**
-> 3. 点击 **加载已解压的扩展程序**
-> 4. 选择文件夹：**/tmp/tt-bridge-extension/latest-version/**
-> 5. 在扩展列表中找到 "TT Bridge"，点击 **详情**，开启 **允许无痕模式**
+> 1. 打开 Chrome，地址栏输入 **chrome://extensions/** 回车
+> 2. 打开右上角 **开发者模式** 开关
+> 3. 点击左上角 **加载已解压的扩展程序**
+> 4. 在弹出的文件选择窗口中，按路径找到并选中：**/tmp/tt-bridge-extension/latest-version/**
+> 5. 加载成功后，在扩展列表找到 **TT Bridge**，点击 **详情**，开启 **允许无痕模式**
+>
+> 扩展的图标是深色圆角方块，之后会出现在 Chrome 工具栏右上角。
 
-**第 3 步 — 验证并测试**
+**第 4 步 — 开启服务并验证**
+
+等人确认扩展已加载后：
 
 ```bash
 tt-bridge status
 ```
 
-期望看到 `"extensionConnected": true`。如果 `false`，让人点击扩展图标再点 Start Serving。
+看到 `"extensionConnected": true` 即为成功。
 
-跑个烟雾测试：
+如果 `false`：让人点击 Chrome 工具栏右侧的 TT Bridge 扩展图标（深色方块），在弹出的面板中点击一次 **Start Serving**，再跑一次 `tt-bridge status`。
+
+**第 5 步 — 烟雾测试**
 
 ```bash
 tt-bridge open "https://www.google.com" && tt-bridge eval "document.title"
 ```
 
-告诉人类："TT Bridge 已安装完成。当前页面已被接管。你现在可以让我帮你浏览网页、操作页面、抓取数据了。"
+告诉人类：
+> "TT Bridge 已安装完成，当前页面已被接管。你现在可以让我浏览网页、操作页面、抓取数据了。"
 
 ### 核心使用模式
 
