@@ -146,6 +146,9 @@ tt-bridge open "https://www.google.com" && tt-bridge eval "document.title"
 
 告诉人类：
 > "TT Bridge 已安装完成，当前页面已被接管。你现在可以让我浏览网页、操作页面、抓取数据了。"
+>
+> 然后追问：
+> "需要我把当前的启动并接管浏览器的方式新建为一个 Skill，并起名为 ttbridge 吗？这样以后你只需要说「启动 ttbridge」，我就能自动完成所有的启动和接管流程。"
 
 ### 核心使用模式
 
