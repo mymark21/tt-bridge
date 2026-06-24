@@ -68,6 +68,11 @@ tt-bridge eval "document.title"
 
 逐步执行，每步汇报进度。
 
+**下载路径规则：**
+- Mac：`~/Downloads/`
+- Windows：`%USERPROFILE%\Downloads\`
+- 下文用 `[下载目录]` 代替，执行时替换为对应系统路径。
+
 **第 1 步 — 确保 Node.js 已安装（≥ 18）**
 
 ```bash
@@ -75,22 +80,21 @@ node --version
 ```
 
 如果没装：
+- **Mac**：`brew install node`
+- **Windows**：去 https://nodejs.org 下载安装包
+
+**第 2 步 — 下载并安装 CLI**
 
 ```bash
-# Mac
-brew install node
-# 或去 https://nodejs.org 下载安装包
+# 下载 CLI zip 到下载文件夹
+curl -L -o "[下载目录]/tt-bridge-cli.zip" https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-cli.zip
+
+# 在下载文件夹里解压
+cd "[下载目录]" && unzip -o tt-bridge-cli.zip -d tt-bridge-cli
+
+# 全局安装
+cd tt-bridge-cli && npm install -g .
 ```
-
-**第 2 步 — 安装 CLI**
-
-先找到人类下载的 `tt-bridge-cli.zip` 路径（通常在 `~/Downloads/`）：
-
-```bash
-cd /tmp && unzip -o ~/Downloads/tt-bridge-cli.zip -d tt-bridge-cli && cd tt-bridge-cli && npm install -g .
-```
-
-如果路径不对，用 `ls ~/Downloads/tt-bridge*` 确认实际路径。
 
 验证：
 
@@ -98,12 +102,14 @@ cd /tmp && unzip -o ~/Downloads/tt-bridge-cli.zip -d tt-bridge-cli && cd tt-brid
 which tt-bridge && tt-bridge --help
 ```
 
-**第 3 步 — 安装 Chrome 扩展**
-
-找到 `tt-bridge-extension.zip`，解压：
+**第 3 步 — 下载并安装 Chrome 扩展**
 
 ```bash
-mkdir -p /tmp/tt-bridge-extension && cd /tmp && unzip -o ~/Downloads/tt-bridge-extension.zip -d tt-bridge-extension
+# 下载扩展 zip 到下载文件夹
+curl -L -o "[下载目录]/tt-bridge-extension.zip" https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-extension.zip
+
+# 在下载文件夹里解压
+cd "[下载目录]" && unzip -o tt-bridge-extension.zip -d tt-bridge-extension
 ```
 
 然后告诉人类（逐字显示）：
@@ -113,10 +119,8 @@ mkdir -p /tmp/tt-bridge-extension && cd /tmp && unzip -o ~/Downloads/tt-bridge-e
 > 1. 打开 Chrome，地址栏输入 **chrome://extensions/** 回车
 > 2. 打开右上角 **开发者模式** 开关
 > 3. 点击左上角 **加载已解压的扩展程序**
-> 4. 在弹出的文件选择窗口中，按路径找到并选中：**/tmp/tt-bridge-extension/latest-version/**
-> 5. 加载成功后，在扩展列表找到 **TT Bridge**，点击 **详情**，开启 **允许无痕模式**
->
-> 扩展的图标是深色圆角方块，之后会出现在 Chrome 工具栏右上角。
+> 4. 在弹出的文件选择窗口中，进入你的**下载文件夹**，找到 **tt-bridge-extension** → **latest-version**，选中并确认
+> 5. 加载成功后，在扩展列表找到 **TT Bridge**（深色圆角方块图标），点击 **详情**，开启 **允许无痕模式**
 
 **第 4 步 — 开启服务并验证**
 
@@ -128,7 +132,7 @@ tt-bridge status
 
 看到 `"extensionConnected": true` 即为成功。
 
-如果 `false`：让人点击 Chrome 工具栏右侧的 TT Bridge 扩展图标（深色方块），在弹出的面板中点击一次 **Start Serving**，再跑一次 `tt-bridge status`。
+如果 `false`：让人点击 Chrome 工具栏右侧的 TT Bridge 扩展图标，在弹出的面板中点击一次 **Start Serving**，再跑一次 `tt-bridge status`。
 
 **第 5 步 — 烟雾测试**
 
