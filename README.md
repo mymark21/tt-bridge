@@ -64,7 +64,7 @@ tt-bridge eval "document.title"
 <!-- BEGIN AGENT INSTRUCTIONS -->
 ## 如果你是 AI 智能体
 
-> 这部分是给 AI 智能体（Claude Code、Cursor、Copilot 等）看的。人类用户让你安装或使用 TT Bridge。按以下指引操作，不要让人做复杂手工活。
+> 这部分是给 AI 智能体（Claude Code、Codex、Copilot 等）看的。人类用户让你安装或使用 TT Bridge。按以下指引操作，不要让人做复杂手工活。
 
 ### 当人类说"安装 TT Bridge"
 
