@@ -1,258 +1,260 @@
 # TT Bridge
 
-**A direct bridge between AI agents and your browser.**
+**AI 智能体与浏览器之间的直接桥梁。**
 
-Your AI agent sees exactly what you see — the same page, the same session, the same logged-in state. No re-authentication. No separate browser profile. No repeated approval prompts.
+你的 AI 看到的就是你看到的 — 同一个页面、同一个会话、同一个登录状态。无需重新认证、无需单独浏览器配置、无需反复批准。
 
-TT Bridge gives an AI agent (Claude Code, Cursor, or any terminal-based agent) direct control over a dedicated Chrome window via a lightweight local daemon and a companion Chrome extension.
+TT Bridge 通过一个轻量级的本地守护进程和配套的 Chrome 扩展，让 AI 智能体（Claude Code、Cursor 或任意终端型 agent）直接控制一个专属的 Chrome 窗口。
+
+> [English version →](./README_EN.md)
 
 ---
 
-## How It Works
+## 工作原理
 
 ```
 ┌──────────────┐    HTTP POST /command     ┌──────────────┐    WebSocket     ┌──────────────────┐
 │              │ ────────────────────────►  │              │ ───────────────► │                  │
-│  CLI / Agent │                           │   Daemon     │                  │ Chrome Extension │
+│  CLI / Agent │                           │   守护进程    │                  │   Chrome 扩展    │
 │              │ ◄──────────────────────── │  (127.0.0.1) │ ◄─────────────── │ (Service Worker) │
-└──────────────┘    JSON response          └──────────────┘    JSON result   └────────┬─────────┘
+└──────────────┘    JSON 响应              └──────────────┘    JSON 结果     └────────┬─────────┘
                                                                                      │
                                                                               chrome.debugger API
                                                                                      │
                                                                               ┌──────▼─────────┐
-                                                                              │  Chrome Window  │
-                                                                              │   (Incognito)   │
+                                                                              │   Chrome 窗口   │
+                                                                              │   (无痕模式)    │
                                                                               └────────────────┘
 ```
 
-1. **CLI** sends commands to the local daemon via HTTP on `127.0.0.1:19826–19835`
-2. **Daemon** forwards commands to the Chrome extension via WebSocket
-3. **Extension** executes them in a dedicated incognito window using `chrome.debugger` (CDP)
-4. Results flow back the same chain
+1. **CLI** 通过 HTTP 向本地守护进程发送命令（`127.0.0.1:19826–19835`）
+2. **守护进程** 通过 WebSocket 将命令转发给 Chrome 扩展
+3. **扩展** 使用 `chrome.debugger`（CDP）在专属无痕窗口中执行
+4. 结果沿原链路返回
 
-All traffic stays on loopback. Nothing leaves your machine.
-
----
-
-## Installation
-
-1. Copy the repository URL: `https://github.com/mymark21/tt-bridge`
-2. Tell your AI agent: **"Please install TT Bridge for me."**
-
-Your agent will handle the rest — installing the CLI, loading the Chrome extension, and verifying everything works. If you don't have an AI agent yet, see the manual instructions in the [Development](#development) section.
+所有流量均在本地回环，不会离开你的机器。
 
 ---
 
-## Commands
+## 安装
 
-| Command | Description |
+1. 复制仓库地址：`https://github.com/mymark21/tt-bridge`
+2. 告诉你的 AI 智能体：**"请帮我安装 TT Bridge"**
+
+AI 会自动完成 CLI 安装、Chrome 扩展加载和验证。如果你还没有 AI 智能体，请查看[开发](#开发)部分的手动安装说明。
+
+---
+
+## 命令
+
+| 命令 | 说明 |
 |---|---|
-| `tt-bridge open <url>` | Navigate to a URL |
-| `tt-bridge eval <js>` | Execute JavaScript in the page and return the result |
-| `tt-bridge click <selector>` | Click a DOM element by CSS selector |
-| `tt-bridge screenshot [path]` | Capture screenshot (base64 to stdout, or file if path given) |
-| `tt-bridge tab list` | List all tabs in the automation window |
-| `tt-bridge tab new [url]` | Open a new tab |
-| `tt-bridge tab select <index>` | Switch to a tab by index |
-| `tt-bridge tab close <index>` | Close a tab by index |
-| `tt-bridge sessions` | Show active automation sessions |
-| `tt-bridge close-window` | Close the automation window |
-| `tt-bridge status` | Show daemon and extension connection status |
-| `tt-bridge daemon start\|stop\|status` | Manage the local daemon lifecycle |
+| `tt-bridge open <url>` | 导航到指定 URL |
+| `tt-bridge eval <js>` | 在页面中执行 JavaScript 并返回结果 |
+| `tt-bridge click <selector>` | 通过 CSS 选择器点击 DOM 元素 |
+| `tt-bridge screenshot [path]` | 截图（输出 base64 到 stdout，或保存到文件） |
+| `tt-bridge tab list` | 列出自动化窗口中的所有标签页 |
+| `tt-bridge tab new [url]` | 新建标签页 |
+| `tt-bridge tab select <index>` | 按索引切换标签页 |
+| `tt-bridge tab close <index>` | 按索引关闭标签页 |
+| `tt-bridge sessions` | 显示活跃的自动化会话 |
+| `tt-bridge close-window` | 关闭自动化窗口 |
+| `tt-bridge status` | 显示守护进程和扩展连接状态 |
+| `tt-bridge daemon start\|stop\|status` | 管理守护进程生命周期 |
 
-### Flags
+### 参数
 
-| Flag | Description |
+| 参数 | 说明 |
 |---|---|
-| `--workspace <name>` | Isolate sessions by workspace (default: `default`) |
-| `--human` | Target the human's currently active tab instead of the automation window |
-| `--json` | Output machine-readable JSON |
-| `--full-page` | Capture full-page screenshots |
-| `--format png\|jpeg` | Screenshot output format |
-| `--quality <n>` | JPEG quality (0–100) |
+| `--workspace <name>` | 按工作区隔离会话（默认：`default`） |
+| `--human` | 操作人类当前活跃的标签页，而非自动化窗口 |
+| `--json` | 输出机器可读的 JSON 格式 |
+| `--full-page` | 截取完整页面的截图 |
+| `--format png\|jpeg` | 截图输出格式 |
+| `--quality <n>` | JPEG 质量（0–100） |
 
 ---
 
-## Design Principles
+## 设计原则
 
-- **Dedicated incognito window** — Automation runs isolated from your normal browsing. Your everyday tabs are never touched.
-- **Zero repeated approvals** — The extension holds the `debugger` permission permanently. You approve once on install.
-- **Workspace isolation** — Each `--workspace` gets its own incognito window with independent tabs and cookie state.
-- **Auto-start / auto-stop** — The daemon starts on first command and exits after 5 minutes idle. No process management needed.
-- **Loopback only** — The daemon binds to `127.0.0.1`. Nothing is exposed to the network.
+- **专属无痕窗口** — 自动化操作与正常浏览完全隔离，日常标签页不受影响
+- **一次授权，永久有效** — 扩展持有 `debugger` 权限，安装时批准一次即可
+- **工作区隔离** — 每个 `--workspace` 拥有独立的无痕窗口、标签页和 cookie 状态
+- **自动启动 / 自动停止** — 守护进程在首次命令时自动启动，闲置 5 分钟后自动退出
+- **仅限本地回环** — 守护进程绑定 `127.0.0.1`，不暴露到网络
 
 ---
 
-## Environment Variables
+## 环境变量
 
-| Variable | Default | Description |
+| 变量 | 默认值 | 说明 |
 |---|---|---|
-| `AGENT_BROWSER_BRIDGE_HOST` | `127.0.0.1` | Daemon bind address |
-| `AGENT_BROWSER_BRIDGE_PORT` | `19826` | Daemon start port |
-| `AGENT_BROWSER_BRIDGE_MAX_PORT` | `19835` | Maximum port to try |
-| `AGENT_BROWSER_BRIDGE_IDLE_TIMEOUT_MS` | `300000` | Daemon idle timeout (5 min) |
-| `AGENT_BROWSER_BRIDGE_COMMAND_TIMEOUT_MS` | `30000` | Per-command timeout |
+| `AGENT_BROWSER_BRIDGE_HOST` | `127.0.0.1` | 守护进程绑定地址 |
+| `AGENT_BROWSER_BRIDGE_PORT` | `19826` | 守护进程起始端口 |
+| `AGENT_BROWSER_BRIDGE_MAX_PORT` | `19835` | 最大尝试端口 |
+| `AGENT_BROWSER_BRIDGE_IDLE_TIMEOUT_MS` | `300000` | 守护进程空闲超时（5 分钟） |
+| `AGENT_BROWSER_BRIDGE_COMMAND_TIMEOUT_MS` | `30000` | 单条命令超时时间 |
 
 ---
 
-## Security
+## 安全性
 
-- The daemon binds exclusively to `127.0.0.1` — no network exposure.
-- No authentication mechanism is provided — the security model relies on localhost isolation. Do not expose the daemon port to a network interface.
-- The extension requires Chrome's `debugger` permission, which enables reading all page content. Only install trusted extensions locally.
-- Automation runs in a separate incognito window by default, isolating your normal browsing session, cookies, and tabs.
+- 守护进程仅绑定 `127.0.0.1`，不暴露到网络
+- 无认证机制 — 安全模型基于本地回环隔离。切勿将守护进程端口暴露到网络接口
+- 扩展需要 Chrome 的 `debugger` 权限，可以读取所有页面内容。请仅在本地安装可信扩展
+- 默认情况下，自动化运行在独立的无痕窗口中，与正常浏览会话、cookie 和标签页隔离
 
 ---
 
-## Development
+## 开发
 
 ```bash
-# Build the extension
+# 构建扩展
 cd extension && npm install && npm run build
 
-# Run daemon in foreground
+# 前台运行守护进程
 tt-bridge serve
 
-# Package extension zip
+# 打包扩展
 cd extension && npm run build && npm run package:zip
 ```
 
 ---
 
-## Acknowledgements
+## 致谢
 
-Architecture inspired by [vercel-labs/agent-browser](https://github.com/vercel-labs/agent-browser).
+架构灵感来源于 [vercel-labs/agent-browser](https://github.com/vercel-labs/agent-browser)。
 
 ---
 
 <!-- BEGIN AGENT INSTRUCTIONS -->
-## If you are an AI agent
+## 如果你是 AI 智能体
 
-> This section is for you — the AI agent (Claude Code, Cursor, Copilot, etc.). A human has asked you to install or use TT Bridge. Follow the instructions below. Do not make the human do manual work.
+> 这部分是为 AI 智能体（Claude Code、Cursor、Copilot 等）准备的。人类用户让你安装或使用 TT Bridge。请按照以下说明操作。不要让人类做手动工作。
 
-### When the human says "install TT Bridge" (or similar)
+### 当人类说"安装 TT Bridge"（或类似表述）
 
-Execute this procedure step by step. Report progress as you go.
+逐步执行以下步骤，每步汇报进度。
 
-**Step 1 — Install the CLI**
+**第 1 步 — 安装 CLI**
 
 ```bash
 npm install -g tt-bridge
 ```
 
-Wait for it to finish. If `npm` is not found, tell the human to install Node.js first.
+等待完成。如果未找到 `npm`，告知人类先安装 Node.js（版本 ≥ 18）。
 
-**Step 2 — Clone the repository (for the Chrome extension)**
+**第 2 步 — 克隆仓库（用于 Chrome 扩展）**
 
 ```bash
 git clone https://github.com/mymark21/tt-bridge /tmp/tt-bridge
 ```
 
-If `/tmp/tt-bridge` already exists, remove it first or clone to a different path.
+如果 `/tmp/tt-bridge` 已存在，先删除或换一个路径。
 
-**Step 3 — Build the extension**
+**第 3 步 — 构建扩展**
 
 ```bash
 cd /tmp/tt-bridge/extension && npm install && npm run build
 ```
 
-**Step 4 — Tell the human to load the extension in Chrome**
+**第 4 步 — 告知人类在 Chrome 中加载扩展**
 
-Display these instructions to the human verbatim:
+向人类逐字显示以下指引：
 
-> Now I need you to load the Chrome extension. Here's what to do:
+> 现在需要你在 Chrome 中加载扩展，请按以下步骤操作：
 >
-> 1. Open **chrome://extensions/** in Chrome
-> 2. Toggle **Developer mode** ON (top-right corner)
-> 3. Click **Load unpacked**
-> 4. Navigate to and select the folder: **/tmp/tt-bridge/extension/**
-> 5. Find "TT Bridge" in the extension list, click **Details**, and enable **Allow in Incognito**
+> 1. 打开 **chrome://extensions/**
+> 2. 打开右上角的**开发者模式**
+> 3. 点击**加载已解压的扩展程序**
+> 4. 选择文件夹：**/tmp/tt-bridge/extension/**
+> 5. 在扩展列表中找到"TT Bridge"，点击**详情**，开启**允许无痕模式**
 
-**Step 5 — Verify the installation**
+**第 5 步 — 验证安装**
 
-After the human confirms the extension is loaded, run:
+人类确认扩展加载完毕后，运行：
 
 ```bash
 tt-bridge status
 ```
 
-Expected output includes `"extensionConnected": true`. If it says `false`, tell the human to click the TT Bridge extension icon in Chrome's toolbar and press **Start Serving**.
+预期输出包含 `"extensionConnected": true`。如果显示 `false`，告知人类点击 Chrome 工具栏中的 TT Bridge 扩展图标，**再点一下 Start Serving**。
 
-**Step 6 — Confirm success**
+**第 6 步 — 确认成功**
 
-Run a quick smoke test:
+运行快速烟雾测试：
 
 ```bash
 tt-bridge open "data:text/html,<h1>TT Bridge Ready</h1>" --workspace test && tt-bridge eval "document.title" --workspace test && tt-bridge close-window --workspace test
 ```
 
-Tell the human: "TT Bridge is installed and working. You can now ask me to browse the web, interact with pages, take screenshots, or automate any browser task."
+告知人类："TT Bridge 已安装并正常工作。现在你可以让我浏览网页、与页面交互、截图或执行任何浏览器自动化任务。"
 
-### Core usage pattern
+### 核心使用模式
 
 ```bash
-# Navigate (creates an incognito automation window if none exists)
+# 导航（如无自动化窗口则自动创建无痕窗口）
 tt-bridge open "https://example.com" --workspace mytask
 
-# Read page state
+# 读取页面状态
 tt-bridge eval "document.title" --workspace mytask
 tt-bridge eval "JSON.stringify({url: location.href, text: document.body.innerText.slice(0, 2000)})" --workspace mytask
 
-# Interact
+# 交互
 tt-bridge click "button.submit" --workspace mytask
 tt-bridge eval "document.querySelector('#search').value = 'hello'" --workspace mytask
 
-# Visual inspection
+# 可视化检查
 tt-bridge screenshot --workspace mytask --full-page
-# Or save to file:
+# 或保存到文件：
 tt-bridge screenshot /tmp/page.png --workspace mytask --full-page
 
-# Read cookies
+# 读取 cookie
 tt-bridge eval "document.cookie" --workspace mytask
 
-# Tab management
+# 标签页管理
 tt-bridge tab list --workspace mytask --json
 tt-bridge tab new "https://other.example" --workspace mytask
 tt-bridge tab select 0 --workspace mytask
 
-# Teardown
+# 结束会话
 tt-bridge close-window --workspace mytask
 ```
 
-### Best practices for agent use
+### AI 智能体使用最佳实践
 
-1. **Always pass `--json`** when you need structured output you can parse
-2. **Use `--workspace` to isolate tasks** — each workspace gets its own incognito window, so parallel sessions don't interfere
-3. **Prefer `eval` over `click`** when you need a return value — `eval` returns data, `click` is fire-and-forget
-4. **Use `--full-page` for screenshots** to capture content below the fold
-5. **`open` waits for page load** — up to a 15-second timeout. Check the response for `timedOut`
-6. **Check `tt-bridge status`** before starting a long task to confirm the daemon and extension are connected
-7. **The automation window is incognito** — cookies and localStorage are fresh per workspace. If you need the human's logged-in state, use `--human` (targets their active tab) or manually log in within the automation window
-8. **Screenshots return base64 to stdout** when no file path is given. Pipe to `base64 -d > file.png` to decode, or pass a path directly
+1. **需要结构化输出时始终加 `--json`**
+2. **用 `--workspace` 隔离任务** — 每个工作区拥有独立的无痕窗口，并行任务互不干扰
+3. **需要返回值时用 `eval` 而非 `click`** — `eval` 返回数据，`click` 只管点击
+4. **用 `--full-page` 截图** 以捕获首屏以下的内容
+5. **`open` 等待页面加载完成** — 最多 15 秒超时。检查响应中的 `timedOut` 字段
+6. **开始长时间任务前先运行 `tt-bridge status`** 确认守护进程和扩展已连接
+7. **自动化窗口是无痕模式** — cookie 和 localStorage 按工作区独立。如需人类的登录状态，使用 `--human`（操作人类当前标签页）或在自动化窗口内手动登录
+8. **未指定文件路径时截图输出 base64 到 stdout** — 用 `base64 -d > file.png` 解码，或直接传文件路径
 
-### Troubleshooting
+### 故障排除
 
-| Symptom | Likely cause | Fix |
+| 症状 | 可能原因 | 解决方法 |
 |---|---|---|
-| `Daemon is not running` | Idle timeout killed it | Run any command — daemon auto-starts |
-| `Extension not connected` | Extension not serving | Tell human: click extension icon → Start Serving |
-| `Tab no longer exists` | Automation window was closed | Re-run the command; a new window is created automatically |
-| `Another debugger is already attached` | Another extension is using CDP | Tell human to disable conflicting debugging extensions |
-| `Allow in Incognito` error | Extension permission missing | Tell human: `chrome://extensions/` → TT Bridge details → enable |
+| `Daemon is not running` | 空闲超时已终止 | 运行任意命令，守护进程会自动启动 |
+| `Extension not connected` | 扩展未服务 | 告知人类：点击扩展图标 → Start Serving |
+| `Tab no longer exists` | 自动化窗口已关闭 | 重新运行命令，窗口会自动创建 |
+| `Another debugger is already attached` | 其他扩展占用了 CDP | 告知人类禁用冲突的调试扩展 |
+| `Allow in Incognito` 错误 | 扩展权限缺失 | 告知人类：`chrome://extensions/` → TT Bridge 详情 → 启用"允许无痕模式" |
 
-### When to use --human
+### 何时使用 --human
 
-The `--human` flag targets the human's currently active browser tab instead of the automation window:
+`--human` 参数操作人类当前活跃的浏览器标签页而非自动化窗口：
 
 ```bash
 tt-bridge eval "document.title" --human
 tt-bridge screenshot --human > /tmp/what-human-sees.png
 ```
 
-Use `--human` when:
-- The human is logged into a site and you need their existing session
-- The human wants you to interact with the page they are looking at
-- You need cookies or localStorage from the human's normal browser profile
+在以下情况使用 `--human`：
+- 人类已在某网站登录，你需要其现有会话
+- 人类希望你操作他们正在看的页面
+- 你需要访问人类正常浏览器配置中的 cookie 或 localStorage
 
-Be careful with `--human` — you are targeting the human's real browsing session. Do not navigate away from a page they are actively using.
+谨慎使用 `--human` — 你在操作人类真实的浏览会话。不要在人类正在使用的页面上随意导航。
 <!-- END AGENT INSTRUCTIONS -->
