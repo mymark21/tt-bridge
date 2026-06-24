@@ -7,7 +7,7 @@
 
 Your AI agent sees exactly what you see — the same page, the same session, the same logged-in state. No re-authentication. No separate browser profile. No repeated approval prompts.
 
-TT Bridge gives an AI agent (Claude Code, Cursor, or any terminal-based agent) direct control over a dedicated Chrome window via a lightweight local daemon and a companion Chrome extension.
+TT Bridge lets AI agents and humans **share the same Chrome window**. What your eyes see, what your mouse clicks, what your screen shows — the agent sees it all, and can act on it too. No switching windows, no opening new browsers. Everything happens in the one window you're already using.
 
 ---
 
@@ -23,17 +23,17 @@ TT Bridge gives an AI agent (Claude Code, Cursor, or any terminal-based agent) d
                                                                               chrome.debugger API
                                                                                      │
                                                                               ┌──────▼─────────┐
-                                                                              │  Chrome Window  │
-                                                                              │   (Incognito)   │
+                                                                              │ Current Browser │
+                                                                              │  (human's tab)  │
                                                                               └────────────────┘
 ```
 
 1. **CLI** sends commands to the local daemon via HTTP on `127.0.0.1:19826–19835`
 2. **Daemon** forwards commands to the Chrome extension via WebSocket
-3. **Extension** executes them in a dedicated incognito window using `chrome.debugger` (CDP)
+3. **Extension** executes them in the same browser window the human is using, via `chrome.debugger` (CDP)
 4. Results flow back the same chain
 
-All traffic stays on loopback. Nothing leaves your machine.
+All traffic stays on loopback. Agents and humans share one browser window.
 
 ---
 
@@ -78,11 +78,11 @@ Your agent will handle the rest — installing the CLI, loading the Chrome exten
 
 ## Design Principles
 
-- **Dedicated incognito window** — Automation runs isolated from your normal browsing. Your everyday tabs are never touched.
-- **Zero repeated approvals** — The extension holds the `debugger` permission permanently. You approve once on install.
-- **Workspace isolation** — Each `--workspace` gets its own incognito window with independent tabs and cookie state.
-- **Auto-start / auto-stop** — The daemon starts on first command and exits after 5 minutes idle. No process management needed.
-- **Loopback only** — The daemon binds to `127.0.0.1`. Nothing is exposed to the network.
+- **Shared window, WYSIWYG** — Agent and human share the same Chrome window. What your eyes see, what your fingers click, what's on your screen — the agent can read it and act on it. This is the core design principle of TT Bridge
+- **Approve once** — The extension holds the `debugger` permission permanently. Grant it once during install
+- **Workspace isolation (optional)** — When you need an isolated automation window, use `--workspace` to create a separate incognito window. Independent from your normal browsing
+- **Auto-start / auto-stop** — The daemon starts on first command and exits after 5 minutes idle. No process management needed
+- **Loopback only** — The daemon binds to `127.0.0.1`. Nothing is exposed to the network
 
 ---
 
@@ -103,7 +103,7 @@ Your agent will handle the rest — installing the CLI, loading the Chrome exten
 - The daemon binds exclusively to `127.0.0.1` — no network exposure.
 - No authentication mechanism is provided — the security model relies on localhost isolation. Do not expose the daemon port to a network interface.
 - The extension requires Chrome's `debugger` permission, which enables reading all page content. Only install trusted extensions locally.
-- Automation runs in a separate incognito window by default, isolating your normal browsing session, cookies, and tabs.
+- By default, the agent and human share the same browser window, session, cookies, and tabs.
 
 ---
 
