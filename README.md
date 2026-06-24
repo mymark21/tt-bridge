@@ -34,38 +34,12 @@ All traffic stays on loopback. Nothing leaves your machine.
 
 ---
 
-## Quick Start
+## Installation
 
-### 1. Install the CLI
+1. Copy the repository URL: `https://github.com/mymark21/tt-bridge`
+2. Tell your AI agent: **"Please install TT Bridge for me."**
 
-```bash
-npm install -g tt-bridge
-```
-
-Or run on-demand:
-
-```bash
-npx tt-bridge <command>
-```
-
-### 2. Install the Chrome Extension
-
-1. Open `chrome://extensions/`
-2. Enable **Developer mode**
-3. Click **Load unpacked**
-4. Select the `extension/` directory from this repository
-5. Open the extension details page and enable **Allow in Incognito**
-
-### 3. Start Using It
-
-```bash
-tt-bridge open https://x.com/home --workspace twitter
-tt-bridge eval "document.title" --workspace twitter
-tt-bridge screenshot x-home.png --workspace twitter --full-page
-tt-bridge tab list --workspace twitter
-```
-
-The daemon auto-starts on first use and shuts down after 5 minutes of idle time.
+Your agent will handle the rest — installing the CLI, loading the Chrome extension, and verifying everything works. If you don't have an AI agent yet, see the manual instructions in the [Development](#development) section.
 
 ---
 
@@ -154,49 +128,65 @@ Architecture inspired by [vercel-labs/agent-browser](https://github.com/vercel-l
 <!-- BEGIN AGENT INSTRUCTIONS -->
 ## If you are an AI agent
 
-> This section is intended for AI agents (Claude Code, Cursor, Copilot, etc.) that need to programmatically install and use TT Bridge. Human readers can ignore it.
+> This section is for you — the AI agent (Claude Code, Cursor, Copilot, etc.). A human has asked you to install or use TT Bridge. Follow the instructions below. Do not make the human do manual work.
 
-### What this tool gives you
+### When the human says "install TT Bridge" (or similar)
 
-TT Bridge provides a CLI for controlling a real Chrome browser from the terminal. You can navigate, execute JavaScript, click elements, screenshot pages, read cookies, and manage tabs. Browser state (logins, sessions, localStorage) persists across commands within a workspace.
+Execute this procedure step by step. Report progress as you go.
 
-### Prerequisites check
-
-Verify the following are in place before using the CLI:
+**Step 1 — Install the CLI**
 
 ```bash
-# 1. Node.js >= 18
-node --version
+npm install -g tt-bridge
+```
 
-# 2. CLI installed
-which tt-bridge || npm install -g tt-bridge
+Wait for it to finish. If `npm` is not found, tell the human to install Node.js first.
 
-# 3. Daemon running and extension connected
+**Step 2 — Clone the repository (for the Chrome extension)**
+
+```bash
+git clone https://github.com/mymark21/tt-bridge /tmp/tt-bridge
+```
+
+If `/tmp/tt-bridge` already exists, remove it first or clone to a different path.
+
+**Step 3 — Build the extension**
+
+```bash
+cd /tmp/tt-bridge/extension && npm install && npm run build
+```
+
+**Step 4 — Tell the human to load the extension in Chrome**
+
+Display these instructions to the human verbatim:
+
+> Now I need you to load the Chrome extension. Here's what to do:
+>
+> 1. Open **chrome://extensions/** in Chrome
+> 2. Toggle **Developer mode** ON (top-right corner)
+> 3. Click **Load unpacked**
+> 4. Navigate to and select the folder: **/tmp/tt-bridge/extension/**
+> 5. Find "TT Bridge" in the extension list, click **Details**, and enable **Allow in Incognito**
+
+**Step 5 — Verify the installation**
+
+After the human confirms the extension is loaded, run:
+
+```bash
 tt-bridge status
 ```
 
-If `tt-bridge status` reports `"extensionConnected": false`, tell the human:
-- Open `chrome://extensions/`
-- Locate **TT Bridge** and verify the toggle shows "Serving"
-- If not, click the extension icon and press **Start Serving**
-- Verify **Allow in Incognito** is enabled in the extension details
+Expected output includes `"extensionConnected": true`. If it says `false`, tell the human to click the TT Bridge extension icon in Chrome's toolbar and press **Start Serving**.
 
-### Installation (when nothing is installed yet)
+**Step 6 — Confirm success**
+
+Run a quick smoke test:
 
 ```bash
-# Install CLI globally
-npm install -g tt-bridge
-
-# Clone to get the extension
-git clone https://github.com/mymark21/tt-bridge /tmp/tt-bridge-install
-
-# Then tell the human:
-# 1. Open chrome://extensions/
-# 2. Enable Developer Mode (top-right toggle)
-# 3. Click "Load unpacked"
-# 4. Select /tmp/tt-bridge-install/extension/
-# 5. Open extension details → enable "Allow in Incognito"
+tt-bridge open "data:text/html,<h1>TT Bridge Ready</h1>" --workspace test && tt-bridge eval "document.title" --workspace test && tt-bridge close-window --workspace test
 ```
+
+Tell the human: "TT Bridge is installed and working. You can now ask me to browse the web, interact with pages, take screenshots, or automate any browser task."
 
 ### Core usage pattern
 
