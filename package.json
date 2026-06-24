@@ -1,0 +1,18 @@
+{
+  "name": "tt-bridge",
+  "version": "1.0.0",
+  "description": "A direct bridge between AI agents and your browser — what you see, the agent sees.",
+  "type": "module",
+  "repository": { "type": "git", "url": "https://github.com/mymark21/tt-bridge" }, "keywords": ["browser-automation", "ai-agent", "claude-code", "chrome-extension", "cdp", "devtools-protocol"], "license": "MIT", "bin": {
+    "tt-bridge": "./bin/cli.mjs"
+  },
+  "files": [
+    "bin"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}
