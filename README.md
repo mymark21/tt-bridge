@@ -18,145 +18,15 @@
 
 ## 安装
 
-TT Bridge 需要装两个东西：
+安装非常简单。
 
-| 要装什么 | 做什么用 |
-|---|---|
-| CLI + Daemon | 提供 `tt-bridge` 命令，并在本机启动浏览器控制服务 |
-| Chrome 扩展 | 连接 Chrome，让 AI 能读取和操作页面 |
+无论你在用 Claude Code、Codex、Cursor、Workbody，还是其他 Agent 类产品，把下面这段话发给它就行：
 
-最短成功路径只有 4 步：
-
-1. 下载并安装 CLI
-2. 下载 Chrome 扩展包
-3. 在 `chrome://extensions/` 里加载扩展，打开“在无痕模式下启用”，然后点一次 `Start Serving`
-4. 运行 `tt-bridge daemon start` 和 `tt-bridge status`，看到 `"extensionConnected": true`
-
-**成功标准：**
-
-```bash
-tt-bridge daemon start
-tt-bridge status
-```
-
-只要输出里有下面这一行，就说明桥已经连上，可以开始控制 Chrome：
-
-```json
-"extensionConnected": true
-```
-
-如果你想让 AI 帮你装，把下面这段复制给 Claude Code、Codex 或其他本地 Agent：
-
-> 项目地址：`https://github.com/mymark21/tt-bridge`
+> 我想安装 TT Bridge。
 >
-> 帮我安装 TT Bridge
-
-AI 会下载 CLI、安装命令行工具，并提醒你完成 Chrome 扩展那一步。Chrome 扩展加载必须手动确认，这是目前唯一需要你亲自点的地方。
-
-AI 帮你装时，应该先把扩展文件夹准备到“下载”文件夹里。你只需要在 Chrome 里选择 `tt-bridge-chrome-extension` 这个文件夹，不需要判断目录层级。
-
-| 文件 | 下载 | 说明 |
-|---|---|---|
-| CLI + Daemon | [下载](https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-cli.zip) | 命令行工具，解压后全局安装 |
-| Chrome 扩展 | [下载](https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-extension.zip) | Chrome 扩展包，解压后加载到 Chrome |
-
-### 手动安装
-
-**第 1 步：安装 CLI**
-
-Mac/Linux：
-
-```bash
-curl -L -o ~/Downloads/tt-bridge-cli.zip https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-cli.zip
-cd ~/Downloads
-rm -rf tt-bridge-cli
-unzip -o tt-bridge-cli.zip
-cd tt-bridge-cli
-npm install -g .
-```
-
-Windows PowerShell：
-
-```powershell
-Invoke-WebRequest -Uri "https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-cli.zip" -OutFile "$env:USERPROFILE\Downloads\tt-bridge-cli.zip"
-cd "$env:USERPROFILE\Downloads"
-Remove-Item .\tt-bridge-cli -Recurse -Force -ErrorAction SilentlyContinue
-Expand-Archive .\tt-bridge-cli.zip . -Force
-cd .\tt-bridge-cli
-npm install -g .
-```
-
-如果 PowerShell 报 `npm.ps1` 执行策略错误，改用：
-
-```powershell
-cmd /c npm install -g .
-```
-
-验证 CLI：
-
-```bash
-tt-bridge --help
-```
-
-**第 2 步：加载 Chrome 扩展**
-
-先下载并解压扩展：
-
-Mac/Linux：
-
-```bash
-curl -L -o ~/Downloads/tt-bridge-extension.zip https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-extension.zip
-cd ~/Downloads
-rm -rf tt-bridge-chrome-extension
-unzip -o tt-bridge-extension.zip
-```
-
-执行完以后，你的“下载”文件夹里会多出一个新文件夹：`tt-bridge-chrome-extension`。这个就是 Chrome 要加载的扩展文件夹。
-
-Windows PowerShell：
-
-```powershell
-Invoke-WebRequest -Uri "https://github.com/mymark21/tt-bridge/releases/download/v1.0.4/tt-bridge-extension.zip" -OutFile "$env:USERPROFILE\Downloads\tt-bridge-extension.zip"
-cd "$env:USERPROFILE\Downloads"
-Remove-Item .\tt-bridge-chrome-extension -Recurse -Force -ErrorAction SilentlyContinue
-Expand-Archive .\tt-bridge-extension.zip . -Force
-```
-
-执行完以后，你的“下载”文件夹里会多出一个新文件夹：`tt-bridge-chrome-extension`。这个就是 Chrome 要加载的扩展文件夹。
-
-然后在 Chrome 里操作：
-
-1. 打开 Chrome，地址栏输入 `chrome://extensions/`
-2. 打开右上角“开发者模式”
-3. 点击“加载未打包的扩展程序”
-4. 在文件选择窗口里进入“下载”文件夹，选择 `tt-bridge-chrome-extension` 这个文件夹；如果你习惯拖拽，也可以把这个文件夹直接拖到扩展页里
-5. 加载成功后，在扩展列表找到 TT Bridge，点“详情”
-6. 打开“在无痕模式下启用”
-7. 回到 Chrome 工具栏，点击 TT Bridge 图标，再点击 `Start Serving`
-
-`tt-bridge-chrome-extension` 就是要交给 Chrome 的扩展文件夹。不要再点进它里面。
-
-**第 3 步：开启服务并自检**
-
-```bash
-tt-bridge daemon start
-```
-
-等 3-5 秒，再运行：
-
-```bash
-tt-bridge status
-```
-
-看到 `"extensionConnected": true` 就成功了。
-
-如果是 `false`，按这个顺序排查：
-
-1. 点击 Chrome 工具栏里的 TT Bridge 扩展图标
-2. 在弹出的面板里点击 `Start Serving`
-3. 再运行一次 `tt-bridge daemon start`
-4. 等 3-5 秒，再运行 `tt-bridge status`
-5. 确认 Chrome 扩展详情页里已经打开“在无痕模式下启用”
+> 项目地址：https://github.com/mymark21/tt-bridge
+>
+> 请帮我完成安装，并在需要我手动操作 Chrome 扩展时一步一步提示我。
 
 ---
 
@@ -206,7 +76,12 @@ tt-bridge eval "document.title" --human
 <!-- BEGIN AGENT INSTRUCTIONS -->
 ## 如果你是 AI 智能体
 
-> 这部分是给 AI 智能体（Claude Code、Codex、Copilot 等）看的。人类用户让你安装或使用 TT Bridge。按以下指引操作，不要让人做复杂手工活。
+下面这个代码块是给 AI 智能体读取的完整安装 Prompt。人类用户不需要逐行阅读。
+
+````text
+# TT Bridge Agent Installation Prompt
+
+这部分是给 AI 智能体（Claude Code、Codex、Cursor、Workbody、Copilot 等）看的。人类用户让你安装或使用 TT Bridge。按以下指引操作，不要让人做复杂手工活。
 
 ### 当人类说"安装 TT Bridge"
 
@@ -387,5 +262,6 @@ tt-bridge close-window --workspace mytask
 # 如需操作当前正在用的 Chrome 标签页：
 tt-bridge eval "document.title" --human
 ```
+````
 
 <!-- END AGENT INSTRUCTIONS -->
