@@ -94,6 +94,14 @@ tt-bridge eval "document.title" --human
 - 不要把绝对路径甩给人类。只告诉他：打开“下载”文件夹，选择 `tt-bridge-chrome-extension`。
 - 继续验证前，先等人类确认扩展已经加载、已经打开“在无痕模式下启用”、已经点过 `Start Serving`。
 
+**默认目标策略：**
+- TT Bridge 默认接管用户当前可见的普通 Chrome 窗口。
+- 不要把单独创建的无痕自动化窗口当成 human-browser 安装成功。
+- 安装验证时，先让用户切到他希望被接管的 Chrome 窗口。
+- 烟雾测试应该在这个普通 Chrome 窗口中新建标签页，不应该打开单独的无痕自动化窗口。
+- 只有用户显式指定 `--workspace <name>` 时，才进入隔离自动化 workspace；非 human workspace 可以继续创建专用无痕窗口。
+- `--human` 只是兼容性别名；默认已经是 human。
+
 **下载路径规则：**
 - Mac：`~/Downloads/`
 - Windows：`%USERPROFILE%\Downloads\`
@@ -228,9 +236,19 @@ tt-bridge status
 **第 5 步 — 烟雾测试**
 
 ```bash
-tt-bridge open "https://www.google.com"
-tt-bridge eval "document.title"
+tt-bridge daemon start
+tt-bridge status --json
+tt-bridge tab new https://www.google.com --json
+tt-bridge eval "JSON.stringify({url: location.href, title: document.title})"
+tt-bridge sessions --json
 ```
+
+验收条件：
+- `status --json` 里必须看到 `"extensionConnected": true`
+- 新标签页必须出现在用户当前可见的普通 Chrome 窗口
+- `eval` 结果里应该能读到 Google 的 URL 和标题
+- `sessions --json` 不应该因为这次 human-browser 验证产生 `incognito: true`
+- 如果出现 `incognito: true` 自动化 session，说明验证失败：你接管的是自动化窗口，不是用户眼前的普通 Chrome
 
 告诉人类：
 > "TT Bridge 已安装完成，当前页面已被接管。你现在可以让我浏览网页、操作页面、抓取数据了。"
@@ -255,11 +273,12 @@ tt-bridge eval "document.querySelector('#search').value = 'hello'"
 # 截图
 tt-bridge screenshot /tmp/page.png --full-page
 
-# 如需隔离不同任务：
+# 默认会操作用户当前可见的普通 Chrome 窗口。
+# 如需隔离自动化任务，显式指定 workspace：
 tt-bridge open "https://example.com" --workspace mytask
 tt-bridge close-window --workspace mytask
 
-# 如需操作当前正在用的 Chrome 标签页：
+# 兼容性别名；默认已经是 human：
 tt-bridge eval "document.title" --human
 ```
 ````
