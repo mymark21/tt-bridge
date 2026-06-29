@@ -89,6 +89,8 @@ tt-bridge eval "document.title" --human
 
 **重要原则：**
 - 你负责把 CLI 装好，并把 Chrome 扩展文件夹准备到人类的“下载”文件夹。
+- 不要使用 `npx tt-bridge`，也不要从 npm registry 安装 `tt-bridge`。npm 上的同名包不是这个浏览器桥。
+- 必须从本项目 GitHub Release 下载 `tt-bridge-cli.zip` 和 `tt-bridge-extension.zip`。
 - 到 Chrome 扩展加载这一步，必须停下来让人类自己操作 Chrome。
 - 不要试图替人类自动打开或操作 `chrome://extensions/`。
 - 不要把绝对路径甩给人类。只告诉他：打开“下载”文件夹，选择 `tt-bridge-chrome-extension`。
@@ -118,6 +120,8 @@ node --version
 - **Windows**：去 https://nodejs.org 下载安装包
 
 **第 2 步 — 下载并安装 CLI**
+
+CLI zip 已包含 daemon 运行所需的 `ws` 依赖。解压后优先执行 `npm install -g .` 注册 `tt-bridge` 命令；如果只是在解压目录里临时运行，也不要切到其它同名 npm 包。
 
 Mac/Linux：
 
