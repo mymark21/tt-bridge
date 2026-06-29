@@ -26,6 +26,8 @@
 >
 > 项目地址：https://github.com/mymark21/tt-bridge
 >
+> 注意：CLI 必须从这个 GitHub Release 里的 zip 安装包安装，不要用 npm/npx 上的同名 `tt-bridge` 包。
+>
 > 请帮我完成安装，并在需要我手动操作 Chrome 扩展时一步一步提示我。
 
 ---
@@ -89,8 +91,10 @@ tt-bridge eval "document.title" --human
 
 **重要原则：**
 - 你负责把 CLI 装好，并把 Chrome 扩展文件夹准备到人类的“下载”文件夹。
-- 不要使用 `npx tt-bridge`，也不要从 npm registry 安装 `tt-bridge`。npm 上的同名包不是这个浏览器桥。
-- 必须从本项目 GitHub Release 下载 `tt-bridge-cli.zip` 和 `tt-bridge-extension.zip`。
+- TT Bridge 的 CLI 必须从本项目 GitHub Release 里的 `tt-bridge-cli.zip` 安装包安装。
+- 不要使用 `npx tt-bridge`，也不要执行 `npm install -g tt-bridge` 去安装 npm registry 上的同名包。npm 上的同名包不是这个浏览器桥。
+- 下文的 `npm install -g .` 是在解压出来的本地 `tt-bridge-cli` 文件夹里注册命令，不是从 npm 公网安装 `tt-bridge`。
+- Chrome 扩展必须从本项目 GitHub Release 里的 `tt-bridge-extension.zip` 安装包解压后加载。
 - 到 Chrome 扩展加载这一步，必须停下来让人类自己操作 Chrome。
 - 不要试图替人类自动打开或操作 `chrome://extensions/`。
 - 不要把绝对路径甩给人类。只告诉他：打开“下载”文件夹，选择 `tt-bridge-chrome-extension`。
@@ -121,7 +125,9 @@ node --version
 
 **第 2 步 — 下载并安装 CLI**
 
-CLI zip 已包含 daemon 运行所需的 `ws` 依赖。解压后优先执行 `npm install -g .` 注册 `tt-bridge` 命令；如果只是在解压目录里临时运行，也不要切到其它同名 npm 包。
+CLI zip 已包含 daemon 运行所需的 `ws` 依赖。解压后优先执行 `npm install -g .` 注册 `tt-bridge` 命令。
+
+注意：这里的 `npm install -g .` 最后有一个点，意思是“安装当前解压出来的本地文件夹”。不要写成 `npm install -g tt-bridge`，那会去 npm 公网安装另一个同名包。
 
 Mac/Linux：
 
@@ -133,7 +139,7 @@ cd "[下载目录]"
 rm -rf tt-bridge-cli
 unzip -o tt-bridge-cli.zip
 
-# 全局安装
+# 从当前本地文件夹注册 tt-bridge 命令；不要写成 npm install -g tt-bridge
 cd tt-bridge-cli
 npm install -g .
 ```
@@ -146,6 +152,7 @@ cd "$env:USERPROFILE\Downloads"
 Remove-Item .\tt-bridge-cli -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive .\tt-bridge-cli.zip . -Force
 cd .\tt-bridge-cli
+# 从当前本地文件夹注册 tt-bridge 命令；不要写成 npm install -g tt-bridge
 npm install -g .
 ```
 
