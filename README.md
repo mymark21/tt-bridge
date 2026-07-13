@@ -34,37 +34,22 @@
 
 ## 怎么用
 
-安装完成后，试试这个：
+安装完成后，直接对 AI 说：
 
-> "帮我接管 Chrome 浏览器，打开谷歌首页，获取网页标题，然后告诉我当前页面已被接管。"
+> 帮我接管 Chrome，打开谷歌首页，读一下网页标题，并确认当前页面已被接管。
 
-AI 会执行以下操作：
+然后你会依次看到：
 
-```bash
-tt-bridge open "https://www.google.com"
-tt-bridge eval "document.title"
-```
+1. 浏览器打开了谷歌首页
+2. AI 读出并告诉你当前页面标题
+3. AI 告诉你接管已成功
 
-你会看到 TT Bridge 打开 Google，读出标题，然后告诉你"当前页面已被接管"。
+之后直接下任务就行，例如：
 
-也可以自己直接跑：
-
-```bash
-tt-bridge open "https://www.google.com"
-tt-bridge eval "document.title"
-```
-
-如果你希望直接操作当前正在用的 Chrome 标签页，在命令后加 `--human`：
-
-```bash
-tt-bridge eval "document.title" --human
-```
-
-**接下来你可以让它帮你做任何事情：**
-- "帮我把这个页面的所有文章标题抓下来"
-- "帮我自动填写这个表单"
-- "帮我在 Twitter 上发一条推文"
-- "帮我截图当前页面"
+- 帮我把这个页面的所有文章标题抓下来
+- 帮我自动填写这个表单
+- 帮我在 Twitter 上发一条推文
+- 帮我截图当前页面
 
 ---
 
