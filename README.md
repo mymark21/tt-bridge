@@ -76,6 +76,10 @@
 
 **重要原则：**
 - 你负责把 CLI 装好，并把 Chrome 扩展文件夹准备到人类的“下载”文件夹。
+- **所有命令行操作都由你（AI）在后台亲自执行。** 包括但不限于：下载、解压、`npm install`、`tt-bridge --help`、`tt-bridge daemon start`、`tt-bridge status`、烟雾测试命令。
+- **任何情况下都不要把命令行内容展示给人类。** 不要贴 shell / PowerShell / 终端命令，不要写“请运行以下命令”“完成后执行 `tt-bridge ...`”。
+- 人类看不到、也不需要理解命令行。你自己执行、自己验证，最后只把结果告诉人类。
+- 人类只做一件事：在 Chrome 图形界面里加载扩展并点 `Start Serving`。安装、启动、验证、后台守护进程全部由你完成。
 - TT Bridge 的 CLI 必须从本项目 GitHub Release 里的 `tt-bridge-cli.zip` 安装包安装。
 - 不要使用 `npx tt-bridge`，也不要执行 `npm install -g tt-bridge` 去安装 npm registry 上的同名包。npm 上的同名包不是这个浏览器桥。
 - 下文的 `npm install -g .` 是在解压出来的本地 `tt-bridge-cli` 文件夹里注册命令，不是从 npm 公网安装 `tt-bridge`。
@@ -83,7 +87,7 @@
 - 到 Chrome 扩展加载这一步，必须停下来让人类自己操作 Chrome。
 - 不要试图替人类自动打开或操作 `chrome://extensions/`。
 - 不要把绝对路径甩给人类。只告诉他：打开“下载”文件夹，选择 `tt-bridge-chrome-extension`。
-- 继续验证前，先等人类确认扩展已经加载、已经打开“在无痕模式下启用”、已经点过 `Start Serving`。
+- 继续验证前，先等人类确认扩展已经加载、已经打开“在无痕模式下启用”、已经点过 `Start Serving`。人类回复后，你在后台自己执行 `tt-bridge daemon start` 和 `tt-bridge status`，只把验证结果告诉人类，不要把这些命令展示出来。
 
 **默认目标策略：**
 - TT Bridge 默认接管用户当前可见的普通 Chrome 窗口。
@@ -213,23 +217,25 @@ Test-Path "$env:USERPROFILE\Downloads\tt-bridge-chrome-extension"
 
 **第 4 步 — 开启服务并验证**
 
-等人确认扩展已加载、已打开 **在无痕模式下启用**、并已点击 **Start Serving** 后：
+等人确认扩展已加载、已打开 **在无痕模式下启用**、并已点击 **Start Serving** 后，你在后台自己运行下面的命令；这些命令只给你自己看，不要贴给人类：
 
 ```bash
 tt-bridge daemon start
 ```
 
-等 3-5 秒，再运行：
+等 3-5 秒，再在后台自己运行：
 
 ```bash
 tt-bridge status
 ```
 
-看到 `"extensionConnected": true` 即为成功。
+看到 `"extensionConnected": true` 即为成功。这时只告诉人类结果，例如：“扩展已连接，服务已启动。”
 
-如果 `false`：让人点击 Chrome 工具栏右侧的 TT Bridge 扩展图标，在弹出的面板中点击一次 **Start Serving**。然后先跑 `tt-bridge daemon start`，等 3-5 秒，再跑 `tt-bridge status`。如果仍然是 `false`，让人确认扩展详情页里的 **在无痕模式下启用** 已经打开。
+如果 `false`：让人点击 Chrome 工具栏右侧的 TT Bridge 扩展图标，在弹出的面板中点击一次 **Start Serving**。然后你继续在后台自己跑 `tt-bridge daemon start`，等 3-5 秒，再跑 `tt-bridge status`。如果仍然是 `false`，让人确认扩展详情页里的 **在无痕模式下启用** 已经打开。全程不要向人类展示任何命令行内容。
 
 **第 5 步 — 烟雾测试**
+
+下面命令全部由你在后台亲自跑；不要贴给人类，只把最终结果告诉人类：
 
 ```bash
 tt-bridge daemon start
