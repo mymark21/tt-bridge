@@ -31,11 +31,10 @@ const extensionWaiters = new Set();
 /** @type {NodeJS.Timeout | null} */
 let idleTimer = null;
 
-// --- Shared-secret auth (P0-1) -------------------------------------------
-// The daemon mints a token once and stores it 0600 in the user's config dir.
-// Only processes that can read that file (i.e. the CLI run by the same user)
-// can drive the browser. The extension never calls /command or /shutdown, so
-// it does not need the token.
+// --- 共享密钥鉴权 (P0-1) --------------------------------------------------
+// daemon 启动时生成一次 token,以 0600 权限存到用户 config 目录。只有能读到
+// 该文件的进程(即同一用户运行的 CLI)才能驱动浏览器。扩展从不调用
+// /command 或 /shutdown,因此不需要 token。
 const TOKEN_DIR = path.join(os.homedir(), '.config', 'tt-bridge');
 const TOKEN_FILE = path.join(TOKEN_DIR, 'token');
 function getOrCreateToken() {
@@ -43,7 +42,7 @@ function getOrCreateToken() {
     const existing = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
     if (existing) return existing;
   } catch {
-    // Missing/unreadable — create it below.
+    // 缺失/不可读 —— 在下面创建。
   }
   const token = randomBytes(32).toString('hex');
   try {
@@ -65,7 +64,7 @@ function isAuthorized(req) {
   return provided.length === expected.length && timingSafeEqual(provided, expected);
 }
 
-// Anti DNS-rebinding (P0-2): the Host must be our own loopback authority.
+// 防 DNS-rebinding (P0-2):Host 必须是我们自己的环回权威。
 function isAllowedHost(req) {
   const host = req.headers.host || '';
   return host === `127.0.0.1:${activePort}`
@@ -73,8 +72,8 @@ function isAllowedHost(req) {
     || host === `[::1]:${activePort}`;
 }
 
-// Anti CSRF (P0-2): a real web page always sends an http(s) Origin; the CLI
-// sends none; the extension sends chrome-extension://. Reject web origins.
+// 防 CSRF (P0-2):真实网页一定带 http(s) Origin;CLI 不带;扩展带
+// chrome-extension://。拒绝网页 Origin。
 function isForbiddenOrigin(req) {
   const origin = req.headers.origin;
   return Boolean(origin) && !origin.startsWith('chrome-extension://');
@@ -181,8 +180,7 @@ function readBody(req, maxBytes = MAX_BODY_BYTES) {
       if (size > maxBytes) {
         done = true;
         req.off('data', onData);
-        // Drain (discard) the rest without buffering, so the socket stays alive
-        // and the caller can still send a 413 response.
+        // 排空(丢弃)剩余数据但不缓冲,让 socket 存活、调用方仍能收到 413 响应。
         req.resume();
         const error = new Error('Request body too large');
         error.statusCode = 413;
@@ -349,12 +347,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Anti DNS-rebinding (P0-2): reject requests not addressed to our loopback authority.
+  // 防 DNS-rebinding (P0-2):拒绝目标不是本机环回权威的请求。
   if (!isAllowedHost(req)) {
     sendJson(res, 403, { ok: false, error: 'Forbidden host', code: 'FORBIDDEN' });
     return;
   }
-  // Anti CSRF (P0-2): reject web-page origins outright.
+  // 防 CSRF (P0-2):直接拒绝网页来源(Origin)。
   if (isForbiddenOrigin(req)) {
     sendJson(res, 403, { ok: false, error: 'Forbidden origin', code: 'FORBIDDEN' });
     return;
@@ -405,14 +403,14 @@ server.on('upgrade', (req, socket, head) => {
     return;
   }
 
-  // Require a chrome-extension:// origin (P1-1). A missing Origin (a non-browser
-  // local client) must NOT be able to impersonate the extension.
+  // 要求 chrome-extension:// 来源 (P1-1)。空 Origin(非浏览器的本地客户端)
+  // 绝不能冒充扩展。
   const origin = req.headers.origin;
   if (!origin || !origin.startsWith('chrome-extension://')) {
     socket.destroy();
     return;
   }
-  // Anti DNS-rebinding on the upgrade path too.
+  // 升级(upgrade)路径同样防 DNS-rebinding。
   if (!isAllowedHost(req)) {
     socket.destroy();
     return;
@@ -425,7 +423,7 @@ server.on('upgrade', (req, socket, head) => {
       } catch {
         // Ignore close errors.
       }
-      // P1-4: don't leave in-flight requests hanging on the old socket until timeout.
+      // P1-4:别让在途请求挂在旧 socket 上直到超时。
       rejectPendingRequests('Extension connection superseded by a new connection');
     }
 
@@ -489,10 +487,9 @@ async function listenWithFallback() {
 listenWithFallback()
   .then(() => {
     log(`Listening on http://${HOST}:${activePort}`);
-    // P2-3: attach the persistent fatal-error handler ONLY after a successful
-    // listen. Registering it earlier would fire on the first EADDRINUSE and
-    // process.exit(1) before listenWithFallback could advance to the next port,
-    // making the whole fallback loop dead code.
+    // P2-3:持久的致命错误处理器只在 listen 成功后再挂。挂早了会在第一次
+    // EADDRINUSE 时先 process.exit(1),抢在 listenWithFallback 退到下一端口
+    // 之前,使整个回退循环变成死代码。
     server.on('error', (error) => {
       log('HTTP server error:', error instanceof Error ? error.message : String(error));
       process.exit(1);

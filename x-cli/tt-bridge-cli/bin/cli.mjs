@@ -15,9 +15,9 @@ const DAEMON_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const require = createRequire(import.meta.url);
 let activePort = null;
 
-// Shared-secret auth (P0-1): the daemon persists a token 0600 in the user's
-// config dir. Read it (lazily re-read, since it is created on first daemon
-// startup) and send it as a Bearer header on every request.
+// 共享密钥鉴权 (P0-1):daemon 会把 token 以 0600 存到用户 config 目录。
+// 这里读取它(惰性重读,因为它在 daemon 首次启动时才创建),并在每个请求
+// 上作为 Bearer 头发送。
 const TOKEN_FILE = path.join(os.homedir(), '.config', 'tt-bridge', 'token');
 function readAuthToken() {
   try {

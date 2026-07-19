@@ -38,9 +38,9 @@ daemon 的 `POST /command` 目前**没有任何鉴权、也不校验 Origin/Host
 
 我知道你的 repo 是**只放 zip**的极简结构。为了让这个安全 PR **可评审 + 能跑 CI**,我额外提交了解压后的补丁源码(`x-cli/`、`x-ext/`)、测试与 `changes.diff`,并用加固后的内容重打包了 `tt-bridge-cli.zip` / `tt-bridge-extension.zip`(附 `SHA256SUMS.txt`)。**如果你更想保持 zip-only**,完全可以只取重打包的两个 zip + `THREAT_MODEL.md`/`SECURITY.md`,把其余 loose 文件丢掉 —— 按你的习惯重塑即可。
 
-## 一处自我修正(端口回退那条)
+## 一处诚实说明(端口回退那条)
 
-崩溃机制是**由代码审查确定**的(顶层 error handler 先于 fallback 注册,`EADDRINUSE` 时先 `process.exit(1)`),修复也**实跑验证**过(起第二个 daemon 占住起始端口,它正确退到下一端口);但我**没有跑原版去观察崩溃**,20 个测试也**尚未覆盖这条 fallback 路径**——回归测试待补。特此说明,不想给你留"言过其实"的印象。
+崩溃机制是**由代码审查确定**的(顶层 error handler 先于 fallback 注册,`EADDRINUSE` 时先 `process.exit(1)`);修复**实跑验证**过,并已补上**自动化回归测试**(`test/daemon.test.mjs` 占住起始端口 → 断言 daemon 退到下一端口),测试数 20 → **21**。唯一仍需说清的:我**没有跑原版去"看它崩"**——"原版会崩"是代码审查得出的结论,不是实测原版。
 
 ## 许可
 

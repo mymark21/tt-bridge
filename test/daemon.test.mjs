@@ -4,6 +4,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import http from 'node:http';
+import net from 'node:net';
 import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -119,6 +120,43 @@ test('oversized body -> 413 PAYLOAD_TOO_LARGE', async () => {
   });
   assert.equal(r.status, 413);
   assert.equal((await r.json()).code, 'PAYLOAD_TOO_LARGE');
+});
+
+test('falls back to the next port when the start port is occupied (P2-3 regression)', async () => {
+  const FB = 19950;
+  // Occupy the start port so the daemon's first listen() hits EADDRINUSE.
+  const squatter = net.createServer();
+  await new Promise((resolve, reject) => {
+    squatter.once('error', reject);
+    squatter.listen(FB, '127.0.0.1', resolve);
+  });
+  const home2 = mkdtempSync(path.join(tmpdir(), 'ttb-fb-'));
+  const child2 = spawn(process.execPath, [DAEMON], {
+    stdio: 'ignore',
+    env: {
+      ...process.env,
+      HOME: home2,
+      AGENT_BROWSER_BRIDGE_PORT: String(FB),
+      AGENT_BROWSER_BRIDGE_MAX_PORT: String(FB + 2),
+      AGENT_BROWSER_BRIDGE_EXTENSION_WAIT_MS: '300',
+    },
+  });
+  try {
+    // Before the fix the daemon process.exit(1)'d here; now it must bind FB+1.
+    let boundPort = null;
+    for (let i = 0; i < 100; i += 1) {
+      try {
+        const r = await fetch(`http://127.0.0.1:${FB + 1}/status`);
+        if (r.ok) { const j = await r.json(); if (j.running) { boundPort = j.port; break; } }
+      } catch { /* not up yet */ }
+      await new Promise((res) => setTimeout(res, 50));
+    }
+    assert.equal(boundPort, FB + 1, 'daemon should fall back to the next port instead of crashing');
+  } finally {
+    child2.kill();
+    await new Promise((resolve) => squatter.close(resolve));
+    rmSync(home2, { recursive: true, force: true });
+  }
 });
 
 test('POST /shutdown without token -> 401', async () => {

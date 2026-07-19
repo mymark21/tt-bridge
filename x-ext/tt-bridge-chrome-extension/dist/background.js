@@ -248,8 +248,8 @@ let configuredPort = DEFAULT_DAEMON_PORT;
 let lastScan = null;
 let initialized = false;
 let initializationPromise = null;
-// P1-5: session-scoped serving. Serving auto-expires after SESSION_MAX_MS; the
-// popup shows a live countdown and an audit log of executed commands.
+// P1-5:会话级 serving。serving 在 SESSION_MAX_MS 后自动过期;popup 显示
+// 实时倒计时和已执行命令的审计日志。
 const SESSION_MAX_MS = 30 * 60 * 1e3;
 const AUDIT_LOG_KEY = "ttBridgeAuditLog";
 const AUDIT_LOG_MAX = 50;
@@ -258,8 +258,8 @@ let auditLog = [];
 const _origLog = console.log.bind(console);
 const _origWarn = console.warn.bind(console);
 const _origError = console.error.bind(console);
-// P2-5: do not forward extension logs (which can carry visited/navigated URLs)
-// to the daemon by default. Flip to true only for local debugging.
+// P2-5:默认不把扩展日志(可能含访问/导航过的 URL)转发给 daemon。
+// 仅本地调试时才置为 true。
 const LOG_FORWARD_ENABLED = false;
 function forwardLog(level, args) {
   if (!LOG_FORWARD_ENABLED) return;
@@ -454,8 +454,8 @@ async function stopServing() {
   reconnectAttempts = 0;
   clearReconnectTimer();
   disconnectSocket();
-  // P1-3: stopping serving must also release every attached debugger, otherwise
-  // the "being debugged" banner and CDP attachment linger on the user's tabs.
+  // P1-3:停止 serving 时必须释放所有已挂的调试器,否则"正在调试"黄条
+  // 和 CDP 连接会残留在用户标签页上。
   detachAll();
   await refreshPortSelection();
   setBridgeStatus("idle", buildIdleStatus(lastScan, configuredPort));
@@ -496,7 +496,7 @@ function recordAudit(entry) {
   if (auditLog.length > AUDIT_LOG_MAX) {
     auditLog = auditLog.slice(-AUDIT_LOG_MAX);
   }
-  // Fire-and-forget persistence; the in-memory copy is the source of truth.
+  // 即发即忘地持久化;内存中的副本才是权威来源。
   try {
     void chrome.storage.local.set({ [AUDIT_LOG_KEY]: auditLog });
   } catch {
@@ -515,8 +515,8 @@ function auditFromCommand(cmd, workspace) {
   }
   return entry;
 }
-// P1-5: enforce session expiry. Called from the keepalive alarm, on init, and
-// whenever the popup asks for state. Returns true if it just stopped serving.
+// P1-5:强制会话过期。由 keepalive alarm、初始化时、以及 popup 每次取状态时
+// 调用。若刚刚停止了 serving 则返回 true。
 function enforceSessionExpiry() {
   if (servingEnabled && servingExpiresAt && Date.now() >= servingExpiresAt) {
     console.log("[agent-browser-bridge] Serving session expired, stopping");
@@ -642,7 +642,7 @@ async function initialize() {
   servingExpiresAt = config.servingExpiresAt;
   await refreshPortSelection();
   if (servingEnabled && enforceSessionExpiry()) {
-    // Session expired while the service worker was evicted — stopServing() ran above.
+    // service worker 被回收期间会话已过期 —— 上面已执行 stopServing()。
   } else if (servingEnabled) {
     await connect();
   }
@@ -699,7 +699,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   });
   return true;
 });
-// P2-6: whitelist actions and bound fields before dispatch.
+// P2-6:分发前对 action 做白名单、对字段做边界校验。
 const VALID_ACTIONS = new Set(["exec", "navigate", "tabs", "cookies", "screenshot", "close-window", "sessions"]);
 function validateCommand(cmd) {
   if (!cmd || typeof cmd !== "object") return "Command must be an object";
@@ -839,9 +839,9 @@ async function handleNavigate(cmd, workspace) {
     let settled = false;
     let pollTimer = null;
     let timeoutTimer = null;
-    // P2-4: settle exactly once and clear BOTH timers, so a resolved navigate
-    // does not leave a 100ms poll and a 15s timeout firing against a dead promise
-    // (the latter also printed a bogus "timed out" warning).
+    // P2-4:只 settle 一次并清掉两个定时器,这样已完成的 navigate 不会留下
+    // 100ms 轮询和 15s 超时对着一个已结束的 promise 触发(后者还会打印
+    // 假的 "timed out" 警告)。
     const finish = () => {
       if (settled) return;
       settled = true;
@@ -940,8 +940,7 @@ async function handleTabs(cmd, workspace) {
   }
 }
 async function handleCookies(cmd) {
-  // P1-2: refuse wildcard dumps and never return httpOnly (session) cookie
-  // values in plaintext.
+  // P1-2:拒绝通配符整库 dump,且绝不明文返回 httpOnly(会话)cookie 的值。
   if (!cmd.domain && !cmd.url) {
     return { id: cmd.id, ok: false, error: "cookies action requires a 'domain' or 'url' filter (wildcard dumps are refused)" };
   }

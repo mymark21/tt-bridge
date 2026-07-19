@@ -1,5 +1,5 @@
 ### daemon.mjs
---- .orig/daemon.mjs	2026-07-11 16:52:02
+--- /private/tmp/claude-501/-Users-moneyprinter-Documents-panel/1c74e768-9ebc-475b-b819-1c9d4f340566/scratchpad/orig-extract/cli/tt-bridge-cli/bin/daemon.mjs	2026-06-24 21:26:56
 +++ x-cli/tt-bridge-cli/bin/daemon.mjs	2000-01-01 00:00:00
 @@ -1,7 +1,10 @@
  #!/usr/bin/env node
@@ -23,15 +23,14 @@
  
  const startedAt = Date.now();
  let activePort = START_PORT;
-@@ -25,6 +31,55 @@
+@@ -25,6 +31,54 @@
  /** @type {NodeJS.Timeout | null} */
  let idleTimer = null;
  
-+// --- Shared-secret auth (P0-1) -------------------------------------------
-+// The daemon mints a token once and stores it 0600 in the user's config dir.
-+// Only processes that can read that file (i.e. the CLI run by the same user)
-+// can drive the browser. The extension never calls /command or /shutdown, so
-+// it does not need the token.
++// --- 共享密钥鉴权 (P0-1) --------------------------------------------------
++// daemon 启动时生成一次 token,以 0600 权限存到用户 config 目录。只有能读到
++// 该文件的进程(即同一用户运行的 CLI)才能驱动浏览器。扩展从不调用
++// /command 或 /shutdown,因此不需要 token。
 +const TOKEN_DIR = path.join(os.homedir(), '.config', 'tt-bridge');
 +const TOKEN_FILE = path.join(TOKEN_DIR, 'token');
 +function getOrCreateToken() {
@@ -39,7 +38,7 @@
 +    const existing = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
 +    if (existing) return existing;
 +  } catch {
-+    // Missing/unreadable — create it below.
++    // 缺失/不可读 —— 在下面创建。
 +  }
 +  const token = randomBytes(32).toString('hex');
 +  try {
@@ -61,7 +60,7 @@
 +  return provided.length === expected.length && timingSafeEqual(provided, expected);
 +}
 +
-+// Anti DNS-rebinding (P0-2): the Host must be our own loopback authority.
++// 防 DNS-rebinding (P0-2):Host 必须是我们自己的环回权威。
 +function isAllowedHost(req) {
 +  const host = req.headers.host || '';
 +  return host === `127.0.0.1:${activePort}`
@@ -69,8 +68,8 @@
 +    || host === `[::1]:${activePort}`;
 +}
 +
-+// Anti CSRF (P0-2): a real web page always sends an http(s) Origin; the CLI
-+// sends none; the extension sends chrome-extension://. Reject web origins.
++// 防 CSRF (P0-2):真实网页一定带 http(s) Origin;CLI 不带;扩展带
++// chrome-extension://。拒绝网页 Origin。
 +function isForbiddenOrigin(req) {
 +  const origin = req.headers.origin;
 +  return Boolean(origin) && !origin.startsWith('chrome-extension://');
@@ -79,7 +78,7 @@
  function nowIso() {
    return new Date().toISOString();
  }
-@@ -82,6 +137,10 @@
+@@ -82,6 +136,10 @@
      return Promise.resolve();
    }
  
@@ -90,7 +89,7 @@
    return new Promise((resolve, reject) => {
      const waiter = {
        resolve: () => {
-@@ -111,26 +170,61 @@
+@@ -111,26 +169,60 @@
    res.end(body);
  }
  
@@ -109,8 +108,7 @@
 +      if (size > maxBytes) {
 +        done = true;
 +        req.off('data', onData);
-+        // Drain (discard) the rest without buffering, so the socket stays alive
-+        // and the caller can still send a 413 response.
++        // 排空(丢弃)剩余数据但不缓冲,让 socket 存活、调用方仍能收到 413 响应。
 +        req.resume();
 +        const error = new Error('Request body too large');
 +        error.statusCode = 413;
@@ -157,7 +155,7 @@
      });
      return;
    }
-@@ -147,6 +241,7 @@
+@@ -147,6 +239,7 @@
        id,
        ok: false,
        error: error instanceof Error ? error.message : 'Extension not connected',
@@ -165,7 +163,7 @@
      });
      return;
    }
-@@ -166,11 +261,15 @@
+@@ -166,11 +259,15 @@
        pendingRequests.delete(id);
        reject(error);
      }
@@ -186,27 +184,25 @@
  
    sendJson(res, response.ok === false ? 500 : 200, response);
  }
-@@ -247,8 +346,19 @@
- const server = http.createServer(async (req, res) => {
-   if (!req.url) {
-     sendJson(res, 404, { ok: false, error: 'Missing URL' });
-+    return;
-+  }
-+
-+  // Anti DNS-rebinding (P0-2): reject requests not addressed to our loopback authority.
-+  if (!isAllowedHost(req)) {
-+    sendJson(res, 403, { ok: false, error: 'Forbidden host', code: 'FORBIDDEN' });
+@@ -250,6 +347,17 @@
      return;
    }
-+  // Anti CSRF (P0-2): reject web-page origins outright.
+ 
++  // 防 DNS-rebinding (P0-2):拒绝目标不是本机环回权威的请求。
++  if (!isAllowedHost(req)) {
++    sendJson(res, 403, { ok: false, error: 'Forbidden host', code: 'FORBIDDEN' });
++    return;
++  }
++  // 防 CSRF (P0-2):直接拒绝网页来源(Origin)。
 +  if (isForbiddenOrigin(req)) {
 +    sendJson(res, 403, { ok: false, error: 'Forbidden origin', code: 'FORBIDDEN' });
 +    return;
 +  }
- 
++
    if (req.method === 'GET' && req.url === '/ping') {
      sendJson(res, 200, {
-@@ -266,11 +376,19 @@
+       ok: true,
+@@ -266,11 +374,19 @@
    }
  
    if (req.method === 'POST' && req.url === '/command') {
@@ -226,7 +222,7 @@
      sendJson(res, 200, { ok: true, message: 'Shutting down' });
      setTimeout(() => shutdown(0), 50);
      return;
-@@ -279,7 +397,7 @@
+@@ -279,7 +395,7 @@
    sendJson(res, 404, { ok: false, error: `Unknown route: ${req.method} ${req.url}` });
  });
  
@@ -235,19 +231,19 @@
  
  server.on('upgrade', (req, socket, head) => {
    if (req.url !== '/ext') {
-@@ -287,11 +405,18 @@
+@@ -287,11 +403,18 @@
      return;
    }
  
-+  // Require a chrome-extension:// origin (P1-1). A missing Origin (a non-browser
-+  // local client) must NOT be able to impersonate the extension.
++  // 要求 chrome-extension:// 来源 (P1-1)。空 Origin(非浏览器的本地客户端)
++  // 绝不能冒充扩展。
    const origin = req.headers.origin;
 -  if (origin && !origin.startsWith('chrome-extension://')) {
 +  if (!origin || !origin.startsWith('chrome-extension://')) {
      socket.destroy();
      return;
    }
-+  // Anti DNS-rebinding on the upgrade path too.
++  // 升级(upgrade)路径同样防 DNS-rebinding。
 +  if (!isAllowedHost(req)) {
 +    socket.destroy();
 +    return;
@@ -255,16 +251,16 @@
  
    wss.handleUpgrade(req, socket, head, (ws) => {
      if (extensionSocket && extensionSocket.readyState === WebSocket.OPEN) {
-@@ -300,6 +425,8 @@
+@@ -300,6 +423,8 @@
        } catch {
          // Ignore close errors.
        }
-+      // P1-4: don't leave in-flight requests hanging on the old socket until timeout.
++      // P1-4:别让在途请求挂在旧 socket 上直到超时。
 +      rejectPendingRequests('Extension connection superseded by a new connection');
      }
  
      extensionSocket = ws;
-@@ -359,14 +486,17 @@
+@@ -359,14 +484,16 @@
    throw new Error(`No free port found between ${START_PORT} and ${MAX_PORT}`);
  }
  
@@ -276,10 +272,9 @@
  listenWithFallback()
    .then(() => {
      log(`Listening on http://${HOST}:${activePort}`);
-+    // P2-3: attach the persistent fatal-error handler ONLY after a successful
-+    // listen. Registering it earlier would fire on the first EADDRINUSE and
-+    // process.exit(1) before listenWithFallback could advance to the next port,
-+    // making the whole fallback loop dead code.
++    // P2-3:持久的致命错误处理器只在 listen 成功后再挂。挂早了会在第一次
++    // EADDRINUSE 时先 process.exit(1),抢在 listenWithFallback 退到下一端口
++    // 之前,使整个回退循环变成死代码。
 +    server.on('error', (error) => {
 +      log('HTTP server error:', error instanceof Error ? error.message : String(error));
 +      process.exit(1);
@@ -289,7 +284,7 @@
    .catch((error) => {
 
 ### cli.mjs
---- .orig/cli.mjs	2026-07-11 16:52:02
+--- /private/tmp/claude-501/-Users-moneyprinter-Documents-panel/1c74e768-9ebc-475b-b819-1c9d4f340566/scratchpad/orig-extract/cli/tt-bridge-cli/bin/cli.mjs	2026-06-28 18:54:44
 +++ x-cli/tt-bridge-cli/bin/cli.mjs	2000-01-01 00:00:00
 @@ -6,6 +6,7 @@
  import { createRequire } from 'node:module';
@@ -304,9 +299,9 @@
  const require = createRequire(import.meta.url);
  let activePort = null;
 +
-+// Shared-secret auth (P0-1): the daemon persists a token 0600 in the user's
-+// config dir. Read it (lazily re-read, since it is created on first daemon
-+// startup) and send it as a Bearer header on every request.
++// 共享密钥鉴权 (P0-1):daemon 会把 token 以 0600 存到用户 config 目录。
++// 这里读取它(惰性重读,因为它在 daemon 首次启动时才创建),并在每个请求
++// 上作为 Bearer 头发送。
 +const TOKEN_FILE = path.join(os.homedir(), '.config', 'tt-bridge', 'token');
 +function readAuthToken() {
 +  try {
@@ -339,7 +334,7 @@
      });
 
 ### background.js
---- .orig/background.js	2026-07-11 16:52:02
+--- /private/tmp/claude-501/-Users-moneyprinter-Documents-panel/1c74e768-9ebc-475b-b819-1c9d4f340566/scratchpad/orig-extract/ext/tt-bridge-chrome-extension/dist/background.js	2026-06-24 22:27:55
 +++ x-ext/tt-bridge-chrome-extension/dist/background.js	2000-01-01 00:00:00
 @@ -88,16 +88,19 @@
  async function readBridgeRuntimeConfig() {
@@ -388,8 +383,8 @@
  let lastScan = null;
  let initialized = false;
  let initializationPromise = null;
-+// P1-5: session-scoped serving. Serving auto-expires after SESSION_MAX_MS; the
-+// popup shows a live countdown and an audit log of executed commands.
++// P1-5:会话级 serving。serving 在 SESSION_MAX_MS 后自动过期;popup 显示
++// 实时倒计时和已执行命令的审计日志。
 +const SESSION_MAX_MS = 30 * 60 * 1e3;
 +const AUDIT_LOG_KEY = "ttBridgeAuditLog";
 +const AUDIT_LOG_MAX = 50;
@@ -398,8 +393,8 @@
  const _origLog = console.log.bind(console);
  const _origWarn = console.warn.bind(console);
  const _origError = console.error.bind(console);
-+// P2-5: do not forward extension logs (which can carry visited/navigated URLs)
-+// to the daemon by default. Flip to true only for local debugging.
++// P2-5:默认不把扩展日志(可能含访问/导航过的 URL)转发给 daemon。
++// 仅本地调试时才置为 true。
 +const LOG_FORWARD_ENABLED = false;
  function forwardLog(level, args) {
 +  if (!LOG_FORWARD_ENABLED) return;
@@ -416,7 +411,7 @@
    });
  }
  async function refreshPortSelection(trigger) {
-@@ -423,34 +443,87 @@
+@@ -423,35 +443,88 @@
  }
  async function startServing() {
    servingEnabled = true;
@@ -431,8 +426,8 @@
    reconnectAttempts = 0;
    clearReconnectTimer();
    disconnectSocket();
-+  // P1-3: stopping serving must also release every attached debugger, otherwise
-+  // the "being debugged" banner and CDP attachment linger on the user's tabs.
++  // P1-3:停止 serving 时必须释放所有已挂的调试器,否则"正在调试"黄条
++  // 和 CDP 连接会残留在用户标签页上。
 +  detachAll();
    await refreshPortSelection();
    setBridgeStatus("idle", buildIdleStatus(lastScan, configuredPort));
@@ -459,7 +454,7 @@
      void connect();
    }
    return buildPopupState();
-+}
+ }
 +async function loadAuditLog() {
 +  try {
 +    const stored = await chrome.storage.local.get(AUDIT_LOG_KEY);
@@ -474,7 +469,7 @@
 +  if (auditLog.length > AUDIT_LOG_MAX) {
 +    auditLog = auditLog.slice(-AUDIT_LOG_MAX);
 +  }
-+  // Fire-and-forget persistence; the in-memory copy is the source of truth.
++  // 即发即忘地持久化;内存中的副本才是权威来源。
 +  try {
 +    void chrome.storage.local.set({ [AUDIT_LOG_KEY]: auditLog });
 +  } catch {
@@ -493,8 +488,8 @@
 +  }
 +  return entry;
 +}
-+// P1-5: enforce session expiry. Called from the keepalive alarm, on init, and
-+// whenever the popup asks for state. Returns true if it just stopped serving.
++// P1-5:强制会话过期。由 keepalive alarm、初始化时、以及 popup 每次取状态时
++// 调用。若刚刚停止了 serving 则返回 true。
 +function enforceSessionExpiry() {
 +  if (servingEnabled && servingExpiresAt && Date.now() >= servingExpiresAt) {
 +    console.log("[agent-browser-bridge] Serving session expired, stopping");
@@ -502,9 +497,10 @@
 +    return true;
 +  }
 +  return false;
- }
++}
  const automationSessions = /* @__PURE__ */ new Map();
  const WINDOW_IDLE_TIMEOUT = 12e4;
+ const AUTOMATION_WINDOW_URL = "data:text/html,<html></html>";
 @@ -562,11 +635,15 @@
    initialized = true;
    chrome.alarms.create("keepalive", { periodInMinutes: 0.5 });
@@ -517,7 +513,7 @@
    await refreshPortSelection();
 -  if (servingEnabled) {
 +  if (servingEnabled && enforceSessionExpiry()) {
-+    // Session expired while the service worker was evicted — stopServing() ran above.
++    // service worker 被回收期间会话已过期 —— 上面已执行 stopServing()。
 +  } else if (servingEnabled) {
      await connect();
    }
@@ -534,7 +530,7 @@
    });
    return true;
  });
-+// P2-6: whitelist actions and bound fields before dispatch.
++// P2-6:分发前对 action 做白名单、对字段做边界校验。
 +const VALID_ACTIONS = new Set(["exec", "navigate", "tabs", "cookies", "screenshot", "close-window", "sessions"]);
 +function validateCommand(cmd) {
 +  if (!cmd || typeof cmd !== "object") return "Command must be an object";
@@ -575,9 +571,9 @@
 +    let settled = false;
 +    let pollTimer = null;
 +    let timeoutTimer = null;
-+    // P2-4: settle exactly once and clear BOTH timers, so a resolved navigate
-+    // does not leave a 100ms poll and a 15s timeout firing against a dead promise
-+    // (the latter also printed a bogus "timed out" warning).
++    // P2-4:只 settle 一次并清掉两个定时器,这样已完成的 navigate 不会留下
++    // 100ms 轮询和 15s 超时对着一个已结束的 promise 触发(后者还会打印
++    // 假的 "timed out" 警告)。
 +    const finish = () => {
 +      if (settled) return;
 +      settled = true;
@@ -622,12 +618,11 @@
      }, 15e3);
    });
    const tab = await chrome.tabs.get(tabId);
-@@ -831,13 +940,18 @@
+@@ -831,13 +940,17 @@
    }
  }
  async function handleCookies(cmd) {
-+  // P1-2: refuse wildcard dumps and never return httpOnly (session) cookie
-+  // values in plaintext.
++  // P1-2:拒绝通配符整库 dump,且绝不明文返回 httpOnly(会话)cookie 的值。
 +  if (!cmd.domain && !cmd.url) {
 +    return { id: cmd.id, ok: false, error: "cookies action requires a 'domain' or 'url' filter (wildcard dumps are refused)" };
 +  }
