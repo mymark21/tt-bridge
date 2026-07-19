@@ -1,11 +1,9 @@
-PROPOSAL — replace CC BY-NC 4.0 (a content license) with a real software license.
+建议 —— 把 CC BY-NC 4.0(内容协议)换成一个真正的软件许可。
 
-CC BY-NC 4.0 is designed for creative works, not code: it lacks a warranty
-disclaimer tuned for software, a patent grant, and clear terms for linking/
-distribution, and its NonCommercial clause is ambiguous for a developer tool.
-MIT (below) or Apache-2.0 (adds an explicit patent grant) are the conventional
-choices. This is the author's decision — the file is provided as a ready option,
-not applied automatically.
+CC BY-NC 4.0 是为创作作品设计的,不适合代码:它缺少针对软件的免责声明、没有专利授权、
+对链接 / 分发的条款也不清晰,而且它的「非商用」条款用在开发者工具上含义模糊。MIT(见下)
+或 Apache-2.0(多一条显式专利授权)是惯例选择。**这完全由作者决定** —— 本文件只是一个
+现成可选项,并未自动套用。软件许可正文按惯例保留英文原文。
 
 ---
 
