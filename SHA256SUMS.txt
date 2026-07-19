@@ -1,0 +1,2 @@
+b81d9fb8ad57b8da3becbea462cc784e30aaacd537efb65ebe12b80ff244a4bd  tt-bridge-cli.zip
+54238b801f4dd9d31fc99c2df90612039742f42c466edac97d00baaacac1eaa0  tt-bridge-extension.zip
