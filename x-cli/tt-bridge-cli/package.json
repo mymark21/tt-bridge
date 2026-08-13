@@ -1,0 +1,22 @@
+{
+  "name": "tt-bridge",
+  "version": "1.0.4",
+  "description": "Local daemon + CLI bridge for AI browser control via Chrome extension",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "tt-bridge": "./bin/cli.mjs"
+  },
+  "files": [
+    "bin"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "bundledDependencies": [
+    "ws"
+  ],
+  "dependencies": {
+    "ws": "8.21.0"
+  }
+}

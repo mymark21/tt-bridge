@@ -1,0 +1,41 @@
+name: ci
+
+# NOTE: this fork keeps the runtime as two committed zips, but treats the
+# EXTRACTED trees x-cli/ and x-ext/ as the source of truth for lint/test.
+# In a source-first repo, replace the "Install CLI runtime dep" step with
+# `npm ci` inside the package directory.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install CLI runtime dep (ws) from lockfile
+        run: cd x-cli/tt-bridge-cli && npm install --no-audit --no-fund
+
+      - name: Syntax check (node --check)
+        run: node scripts/check-syntax.mjs
+
+      - name: Tests (daemon HTTP contract + extension logic)
+        run: node --test test/daemon.test.mjs test/extension-logic.test.mjs
+
+      - name: Rebuild release zips + checksums
+        run: bash scripts/build-zips.sh
+
+      - name: Upload hardened artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tt-bridge-hardened
+          path: |
+            tt-bridge-cli-hardened.zip
+            tt-bridge-extension-hardened.zip
+            SHA256SUMS.txt

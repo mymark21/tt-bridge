@@ -1,0 +1,95 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:df47c2c8-74ef-4461-95e6-64dae7e42f14",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-12T00:15:53.067Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "tools": [
+      {
+        "vendor": "npm",
+        "name": "cli",
+        "version": "11.8.0"
+      }
+    ],
+    "component": {
+      "bom-ref": "tt-bridge@1.0.4",
+      "type": "library",
+      "name": "tt-bridge-cli",
+      "version": "1.0.4",
+      "scope": "required",
+      "description": "Local daemon + CLI bridge for AI browser control via Chrome extension",
+      "purl": "pkg:npm/tt-bridge@1.0.4",
+      "properties": [
+        {
+          "name": "cdx:npm:package:private",
+          "value": "true"
+        }
+      ],
+      "externalReferences": []
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "ws@8.21.0",
+      "type": "library",
+      "name": "ws",
+      "version": "8.21.0",
+      "scope": "required",
+      "author": "Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)",
+      "description": "Simple to use, blazing fast and thoroughly tested websocket client and server for Node.js",
+      "purl": "pkg:npm/ws@8.21.0",
+      "properties": [
+        {
+          "name": "cdx:npm:package:bundled",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/ws/-/ws-8.21.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/websockets/ws.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/websockets/ws"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "56ca76f1bec345c8a6150bebaaed967a4df3d626310c25aa1d807c42c9e4fd2e117da090ccf18fc8136e563255ddc77a5222ad52da7ab0d33bee05afcdc087fa"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "tt-bridge@1.0.4",
+      "dependsOn": [
+        "ws@8.21.0"
+      ]
+    },
+    {
+      "ref": "ws@8.21.0",
+      "dependsOn": []
+    }
+  ]
+}

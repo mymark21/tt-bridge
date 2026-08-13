@@ -1,0 +1,5 @@
+node_modules/
+.orig/
+.testhome/
+*.log
+.DS_Store

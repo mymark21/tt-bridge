@@ -1,0 +1,49 @@
+建议 —— 把 CC BY-NC 4.0(内容协议)换成一个真正的软件许可。
+
+CC BY-NC 4.0 是为创作作品设计的,不适合代码:它缺少针对软件的免责声明、没有专利授权、
+对链接 / 分发的条款也不清晰,而且它的「非商用」条款用在开发者工具上含义模糊。MIT(见下)
+或 Apache-2.0(多一条显式专利授权)是惯例选择。**这完全由作者决定** —— 本文件只是一个
+现成可选项,并未自动套用。软件许可正文按惯例保留英文原文。
+
+---
+
+MIT License
+
+Copyright (c) 2026 Terry Tang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+以下为 MIT 许可的**中文参考译文,仅供理解;若有歧义,以上方英文原文为准。**
+
+MIT 许可证
+
+版权所有 (c) 2026 Terry Tang
+
+特此免费授予任何获得本软件及相关文档文件(下称"软件")副本的人不受限制地
+处置本软件的权利,包括但不限于使用、复制、修改、合并、发布、分发、再许可
+和/或出售本软件副本,并允许获得本软件的人这样做,但须遵守以下条件:
+
+上述版权声明和本许可声明应包含在本软件的所有副本或实质性部分中。
+
+本软件按"原样"提供,不作任何明示或暗示的担保,包括但不限于对适销性、
+特定用途适用性和非侵权性的担保。在任何情况下,作者或版权持有人均不对
+任何索赔、损害或其他责任负责,无论是在合同诉讼、侵权诉讼还是其他情形下,
+由软件或软件的使用或其他交易所引起、产生或与之相关。

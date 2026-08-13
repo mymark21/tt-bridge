@@ -1,0 +1,12 @@
+{
+  "name": "tt-bridge-hardened-harness",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dev/test harness for the hardened TT Bridge fork. The publishable CLI package is x-cli/tt-bridge-cli; the extension is x-ext/tt-bridge-chrome-extension.",
+  "scripts": {
+    "check": "node scripts/check-syntax.mjs",
+    "test": "node --test test/daemon.test.mjs test/extension-logic.test.mjs",
+    "build:zips": "bash scripts/build-zips.sh"
+  }
+}

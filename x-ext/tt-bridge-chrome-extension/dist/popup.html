@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TT bridge</title>
+    <script type="module" crossorigin src="./assets/popup-BCbnAzCt.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/popup-CIwDS2fd.css">
+    <style>
+      /* P1-5: session countdown + audit log */
+      #session-line { opacity: 0.85; font-variant-numeric: tabular-nums; }
+      .audit-section { margin-top: 10px; }
+      .audit-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.6; margin: 0 0 4px; }
+      .audit-list { list-style: none; margin: 0; padding: 0; max-height: 160px; overflow-y: auto; }
+      .audit-item { display: flex; gap: 8px; font-size: 12px; padding: 2px 0; border-top: 1px solid rgba(127,127,127,0.18); }
+      .audit-when { flex: 0 0 auto; opacity: 0.55; font-variant-numeric: tabular-nums; }
+      .audit-what { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    </style>
+  </head>
+  <body>
+    <main class="popup-shell">
+      <button id="serve-button" class="serve-button" type="button">Start Serving</button>
+      <label class="port-field" for="port-value">
+        <span class="field-label">Port</span>
+        <input id="port-value" class="port-input" type="text" readonly />
+      </label>
+      <p id="status-line" class="status-line">Ready to start serving.</p>
+      <p id="session-line" class="status-line" hidden></p>
+      <section id="audit-section" class="audit-section" hidden>
+        <h2 class="audit-title">Recent commands</h2>
+        <ul id="audit-list" class="audit-list"></ul>
+      </section>
+    </main>
+  </body>
+</html>
