@@ -1,6 +1,6 @@
 {
   "name": "tt-bridge",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Local daemon + CLI bridge for AI browser control via Chrome extension",
   "private": true,
   "type": "module",

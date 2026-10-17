@@ -6,7 +6,7 @@ Only the latest release of the public `v1.0.x` line receives security fixes.
 
 | Version | Supported |
 | --- | --- |
-| `1.0.x` (latest patch, currently `1.0.5`) | Yes |
+| `1.0.x` (latest patch, currently `1.0.6`) | Yes |
 | Earlier `1.0.x` releases | No, upgrade to the latest patch |
 | Private development builds | No public support |
 

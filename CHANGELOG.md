@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.0.6 — stability patch
+
+- daemon: reject non-object JSON bodies with `400 BAD_REQUEST` instead of
+  crashing on `null`/arrays (pre-existing v1.0.4 bug).
+- daemon: restore the 24-hour idle timeout so a 30-minute serving session is
+  not cut off by the previous 5-minute idle shutdown.
+- daemon: create the auth token with `O_EXCL` and re-read on `EEXIST`, avoiding
+  concurrent-start token mismatches.
+- source: aligned with the shipped v1.0.5/v1.0.6 artifacts; `scripts/build-release.sh`
+  packages the same trees.
+- Known limitations remain: extension WebSocket is not mutually authenticated;
+  daemon discovery can be spoofed by a local service; session expiry is
+  periodic, not per command.
+
 ## v1.0.5 — security maintenance
 
 Artifact-based security release built from v1.0.4, incorporating the reviewed

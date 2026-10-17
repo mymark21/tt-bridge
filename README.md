@@ -122,7 +122,7 @@ Mac/Linux：
 
 ```bash
 # 下载 CLI zip 到下载文件夹
-curl -L -o "[下载目录]/tt-bridge-cli.zip" https://github.com/mymark21/tt-bridge/releases/download/v1.0.5/tt-bridge-cli.zip
+curl -L -o "[下载目录]/tt-bridge-cli.zip" https://github.com/mymark21/tt-bridge/releases/download/v1.0.6/tt-bridge-cli.zip
 
 cd "[下载目录]"
 rm -rf tt-bridge-cli
@@ -136,7 +136,7 @@ npm install -g .
 Windows PowerShell：
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/mymark21/tt-bridge/releases/download/v1.0.5/tt-bridge-cli.zip" -OutFile "$env:USERPROFILE\Downloads\tt-bridge-cli.zip"
+Invoke-WebRequest -Uri "https://github.com/mymark21/tt-bridge/releases/download/v1.0.6/tt-bridge-cli.zip" -OutFile "$env:USERPROFILE\Downloads\tt-bridge-cli.zip"
 cd "$env:USERPROFILE\Downloads"
 Remove-Item .\tt-bridge-cli -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive .\tt-bridge-cli.zip . -Force
@@ -163,7 +163,7 @@ Mac/Linux：
 
 ```bash
 # 下载扩展 zip 到下载文件夹
-curl -L -o "[下载目录]/tt-bridge-extension.zip" https://github.com/mymark21/tt-bridge/releases/download/v1.0.5/tt-bridge-extension.zip
+curl -L -o "[下载目录]/tt-bridge-extension.zip" https://github.com/mymark21/tt-bridge/releases/download/v1.0.6/tt-bridge-extension.zip
 
 # 在下载文件夹里解压
 cd "[下载目录]"
@@ -176,7 +176,7 @@ unzip -o tt-bridge-extension.zip
 Windows PowerShell：
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/mymark21/tt-bridge/releases/download/v1.0.5/tt-bridge-extension.zip" -OutFile "$env:USERPROFILE\Downloads\tt-bridge-extension.zip"
+Invoke-WebRequest -Uri "https://github.com/mymark21/tt-bridge/releases/download/v1.0.6/tt-bridge-extension.zip" -OutFile "$env:USERPROFILE\Downloads\tt-bridge-extension.zip"
 cd "$env:USERPROFILE\Downloads"
 Remove-Item .\tt-bridge-chrome-extension -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive .\tt-bridge-extension.zip . -Force

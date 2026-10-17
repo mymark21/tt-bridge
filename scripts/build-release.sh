@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-EXPECTED_VERSION="1.0.5"
+EXPECTED_VERSION="1.0.6"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"

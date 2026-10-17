@@ -11,7 +11,7 @@ const HOST = process.env.AGENT_BROWSER_BRIDGE_HOST || '127.0.0.1';
 const START_PORT = Number(process.env.AGENT_BROWSER_BRIDGE_PORT || '19826');
 const MAX_PORT = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_PORT || '19835');
 const COMMAND_TIMEOUT_MS = Number(process.env.AGENT_BROWSER_BRIDGE_COMMAND_TIMEOUT_MS || '30000');
-const IDLE_TIMEOUT_MS = Number(process.env.AGENT_BROWSER_BRIDGE_IDLE_TIMEOUT_MS || String(5 * 60 * 1000));
+const IDLE_TIMEOUT_MS = Number(process.env.AGENT_BROWSER_BRIDGE_IDLE_TIMEOUT_MS || String(24 * 60 * 60 * 1000));
 const EXTENSION_WAIT_MS = Number(process.env.AGENT_BROWSER_BRIDGE_EXTENSION_WAIT_MS || '20000');
 const MAX_BODY_BYTES = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_BODY_BYTES || String(5 * 1024 * 1024));
 // Screenshots/highlights travel over the extension WebSocket, so the WS frame
@@ -50,8 +50,17 @@ function getOrCreateToken() {
   const token = randomBytes(32).toString('hex');
   try {
     fs.mkdirSync(TOKEN_DIR, { recursive: true, mode: 0o700 });
-    fs.writeFileSync(TOKEN_FILE, token, { mode: 0o600 });
+    fs.writeFileSync(TOKEN_FILE, token, { mode: 0o600, flag: 'wx' });
+    return token;
   } catch (error) {
+    if (error && error.code === 'EEXIST') {
+      try {
+        const existing = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
+        if (existing) return existing;
+      } catch {
+        // fall through to the warning below
+      }
+    }
     log('WARNING: could not persist auth token:', error instanceof Error ? error.message : String(error));
   }
   return token;
@@ -226,6 +235,15 @@ async function handleCommandRequest(req, res) {
       ok: false,
       error: error instanceof Error ? error.message : 'Invalid JSON body',
       code: statusCode === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST',
+    });
+    return;
+  }
+
+  if (!command || typeof command !== 'object' || Array.isArray(command)) {
+    sendJson(res, 400, {
+      ok: false,
+      error: 'Command body must be a JSON object',
+      code: 'BAD_REQUEST',
     });
     return;
   }
