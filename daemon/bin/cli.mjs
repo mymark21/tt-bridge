@@ -5,12 +5,37 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 
 const HOST = process.env.AGENT_BROWSER_BRIDGE_HOST || '127.0.0.1';
 const START_PORT = Number(process.env.AGENT_BROWSER_BRIDGE_PORT || '19826');
 const MAX_PORT = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_PORT || '19835');
 const DAEMON_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), './daemon.mjs');
 let activePort = null;
+
+// Shared-secret auth: the daemon stores its token in the user config directory
+// with 0600 permissions. Only send it to routes that actually require auth, so
+// the token never leaks to an unrelated local service that happens to occupy a
+// port in the discovery range.
+const TOKEN_FILE = path.join(os.homedir(), '.config', 'tt-bridge', 'token');
+const AUTHENTICATED_ROUTES = new Set(['/command', '/shutdown']);
+
+function readAuthToken() {
+  try {
+    return fs.readFileSync(TOKEN_FILE, 'utf8').trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function authHeaders(urlPath) {
+  const route = urlPath.split('?')[0];
+  if (!AUTHENTICATED_ROUTES.has(route)) {
+    return {};
+  }
+  const token = readAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 function printHelp() {
   console.log(`tt-bridge — AI browser control via Chrome extension
@@ -106,6 +131,7 @@ async function fetchJsonForPort(port, urlPath, init = {}, timeoutMs = 3000) {
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders(urlPath),
         ...(init.headers || {}),
       },
     });

@@ -2,8 +2,8 @@
  * CDP execution via chrome.debugger API.
  *
  * chrome.debugger only needs the "debugger" permission — no host_permissions.
- * It can attach to any http/https tab. Avoid chrome:// and chrome-extension://
- * tabs (resolveTabId in background.ts filters them).
+ * It can attach to any http/https tab. Avoid chrome://, chrome-extension://,
+ * file://, view-source: and devtools:// tabs (isDebuggableUrl() filters them).
  */
 
 const attached = new Set<number>();
@@ -11,7 +11,11 @@ const attached = new Set<number>();
 /** Check if a URL can be attached via CDP */
 function isDebuggableUrl(url?: string): boolean {
   if (!url) return true;  // empty/undefined = tab still loading, allow it
-  return !url.startsWith('chrome://') && !url.startsWith('chrome-extension://');
+  return !url.startsWith('chrome://')
+    && !url.startsWith('chrome-extension://')
+    && !url.startsWith('file://')
+    && !url.startsWith('view-source:')
+    && !url.startsWith('devtools://');
 }
 
 async function ensureAttached(tabId: number): Promise<void> {
@@ -148,6 +152,13 @@ export function detach(tabId: number): void {
   if (!attached.has(tabId)) return;
   attached.delete(tabId);
   try { chrome.debugger.detach({ tabId }); } catch { /* ignore */ }
+}
+
+/** Detach every debugger this extension attached (used when serving stops). */
+export function detachAll(): void {
+  for (const tabId of [...attached]) {
+    detach(tabId);
+  }
 }
 
 export function registerListeners(): void {

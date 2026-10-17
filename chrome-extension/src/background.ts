@@ -272,6 +272,9 @@ async function stopServing(): Promise<void> {
   reconnectAttempts = 0;
   clearReconnectTimer();
   disconnectSocket();
+  // Release every debugger attachment; otherwise Chrome keeps the "being
+  // debugged" banner and CDP connection on the user's tabs after stopping.
+  executor.detachAll();
   await refreshPortSelection('popup');
   setBridgeStatus('idle', buildIdleStatus(lastScan, configuredPort));
 }
@@ -521,7 +524,11 @@ async function handleCommand(cmd: Command): Promise<Result> {
 
 function isDebuggableUrl(url?: string): boolean {
   if (!url) return true;
-  return !url.startsWith('chrome://') && !url.startsWith('chrome-extension://');
+  return !url.startsWith('chrome://')
+    && !url.startsWith('chrome-extension://')
+    && !url.startsWith('file://')
+    && !url.startsWith('view-source:')
+    && !url.startsWith('devtools://');
 }
 
 async function resolveTabId(tabId: number | undefined, workspace: string): Promise<number> {

@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
 import http from 'node:http';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes, timingSafeEqual } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { WebSocketServer, WebSocket } from 'ws';
 
 const HOST = process.env.AGENT_BROWSER_BRIDGE_HOST || '127.0.0.1';
@@ -10,6 +13,14 @@ const MAX_PORT = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_PORT || '19835');
 const COMMAND_TIMEOUT_MS = Number(process.env.AGENT_BROWSER_BRIDGE_COMMAND_TIMEOUT_MS || '30000');
 const IDLE_TIMEOUT_MS = Number(process.env.AGENT_BROWSER_BRIDGE_IDLE_TIMEOUT_MS || String(24 * 60 * 60 * 1000));
 const EXTENSION_WAIT_MS = Number(process.env.AGENT_BROWSER_BRIDGE_EXTENSION_WAIT_MS || '20000');
+const MAX_BODY_BYTES = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_BODY_BYTES || String(5 * 1024 * 1024));
+const MAX_PENDING = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_PENDING || '256');
+const MAX_WAITERS = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_WAITERS || '256');
+// Screenshot results are large base64 payloads, so the extension socket needs a
+// much higher cap than HTTP request bodies.
+const WS_MAX_PAYLOAD = Number(
+  process.env.AGENT_BROWSER_BRIDGE_WS_MAX_PAYLOAD || String(100 * 1024 * 1024),
+);
 
 const startedAt = Date.now();
 let activePort = START_PORT;
@@ -24,6 +35,79 @@ const pendingRequests = new Map();
 const extensionWaiters = new Set();
 /** @type {NodeJS.Timeout | null} */
 let idleTimer = null;
+
+// --- Shared-secret auth --------------------------------------------------
+// The daemon creates one random token on first start and stores it in the
+// user's config directory with 0600 permissions. Only processes that can read
+// that file (the same user's CLI) may drive the browser. The extension never
+// calls /command or /shutdown, so it does not need the token.
+
+const TOKEN_DIR = path.join(os.homedir(), '.config', 'tt-bridge');
+const TOKEN_FILE = path.join(TOKEN_DIR, 'token');
+
+function getOrCreateToken() {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const existing = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
+      if (existing) {
+        return existing;
+      }
+    } catch {
+      // Missing or unreadable — create one below.
+    }
+
+    const token = randomBytes(32).toString('hex');
+    try {
+      fs.mkdirSync(TOKEN_DIR, { recursive: true, mode: 0o700 });
+      // 'wx' keeps two simultaneously starting daemons from clobbering each
+      // other: the loser re-reads the winner's token instead of keeping a
+      // stale secret in memory.
+      fs.writeFileSync(TOKEN_FILE, token, { mode: 0o600, flag: 'wx' });
+      return token;
+    } catch (error) {
+      if (error && error.code === 'EEXIST') {
+        continue;
+      }
+      log('WARNING: could not persist auth token:', error instanceof Error ? error.message : String(error));
+      return token;
+    }
+  }
+
+  log('WARNING: auth token file is unusable; using a non-persisted token');
+  return randomBytes(32).toString('hex');
+}
+
+const AUTH_TOKEN = getOrCreateToken();
+
+function isAuthorized(req) {
+  const header = req.headers.authorization || '';
+  const match = /^Bearer\s+(.+)$/i.exec(header);
+  if (!match) {
+    return false;
+  }
+  const provided = Buffer.from(match[1]);
+  const expected = Buffer.from(AUTH_TOKEN);
+  return provided.length === expected.length && timingSafeEqual(provided, expected);
+}
+
+// --- Anti DNS-rebinding --------------------------------------------------
+// The Host header must be one of our own loopback authorities. A rebinding
+// attack resolves an attacker-controlled name to 127.0.0.1, but the Host
+// header still carries the attacker's name and is rejected here.
+function isAllowedHost(req) {
+  const host = req.headers.host || '';
+  return host === `127.0.0.1:${activePort}`
+    || host === `localhost:${activePort}`
+    || host === `[::1]:${activePort}`;
+}
+
+// --- Anti CSRF -----------------------------------------------------------
+// Real web pages always send an http(s) Origin; the CLI sends none and the
+// extension sends chrome-extension://. Reject anything else.
+function isForbiddenOrigin(req) {
+  const origin = req.headers.origin;
+  return Boolean(origin) && !origin.startsWith('chrome-extension://');
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -82,6 +166,10 @@ function waitForExtension(timeoutMs = EXTENSION_WAIT_MS) {
     return Promise.resolve();
   }
 
+  if (extensionWaiters.size >= MAX_WAITERS) {
+    return Promise.reject(new Error('Too many callers waiting for the extension'));
+  }
+
   return new Promise((resolve, reject) => {
     const waiter = {
       resolve: () => {
@@ -111,26 +199,64 @@ function sendJson(res, statusCode, payload) {
   res.end(body);
 }
 
-function readBody(req) {
+function readBody(req, maxBytes = MAX_BODY_BYTES) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-    req.on('error', reject);
+    let size = 0;
+    let done = false;
+    const onData = (chunk) => {
+      if (done) {
+        return;
+      }
+      size += chunk.length;
+      if (size > maxBytes) {
+        done = true;
+        req.off('data', onData);
+        // Drain (discard) the rest without buffering so the socket survives
+        // and the caller can still receive the 413 response.
+        req.resume();
+        const error = new Error('Request body too large');
+        error.statusCode = 413;
+        reject(error);
+        return;
+      }
+      chunks.push(Buffer.from(chunk));
+    };
+
+    req.on('data', onData);
+    req.on('end', () => {
+      if (!done) {
+        done = true;
+        resolve(Buffer.concat(chunks).toString('utf8'));
+      }
+    });
+    req.on('error', (error) => {
+      if (!done) {
+        done = true;
+        reject(error);
+      }
+    });
   });
 }
 
 async function handleCommandRequest(req, res) {
   resetIdleTimer();
 
+  if (pendingRequests.size >= MAX_PENDING) {
+    sendJson(res, 429, { ok: false, error: 'Too many in-flight commands', code: 'RATE_LIMITED' });
+    return;
+  }
+
   let command;
   try {
     const raw = await readBody(req);
     command = raw ? JSON.parse(raw) : {};
   } catch (error) {
-    sendJson(res, 400, {
+    const statusCode = (error && error.statusCode) || 400;
+    sendJson(res, statusCode, {
       ok: false,
       error: error instanceof Error ? error.message : 'Invalid JSON body',
+      code: statusCode === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST',
     });
     return;
   }
@@ -166,11 +292,15 @@ async function handleCommandRequest(req, res) {
       pendingRequests.delete(id);
       reject(error);
     }
-  }).catch((error) => ({
-    id,
-    ok: false,
-    error: error instanceof Error ? error.message : String(error),
-  }));
+  }).catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      id,
+      ok: false,
+      error: message,
+      code: message.includes('Timed out') ? 'TIMEOUT' : 'INTERNAL',
+    };
+  });
 
   sendJson(res, response.ok === false ? 500 : 200, response);
 }
@@ -250,6 +380,20 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Reject requests whose Host is not a loopback authority of this daemon
+  // (DNS-rebinding protection).
+  if (!isAllowedHost(req)) {
+    sendJson(res, 403, { ok: false, error: 'Forbidden host', code: 'FORBIDDEN' });
+    return;
+  }
+
+  // Reject browser Origins (CSRF protection). The CLI sends no Origin and the
+  // extension sends chrome-extension://.
+  if (isForbiddenOrigin(req)) {
+    sendJson(res, 403, { ok: false, error: 'Forbidden origin', code: 'FORBIDDEN' });
+    return;
+  }
+
   if (req.method === 'GET' && req.url === '/ping') {
     sendJson(res, 200, {
       ok: true,
@@ -266,11 +410,19 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && req.url === '/command') {
+    if (!isAuthorized(req)) {
+      sendJson(res, 401, { ok: false, error: 'Unauthorized', code: 'UNAUTHORIZED' });
+      return;
+    }
     await handleCommandRequest(req, res);
     return;
   }
 
   if (req.method === 'POST' && req.url === '/shutdown') {
+    if (!isAuthorized(req)) {
+      sendJson(res, 401, { ok: false, error: 'Unauthorized', code: 'UNAUTHORIZED' });
+      return;
+    }
     sendJson(res, 200, { ok: true, message: 'Shutting down' });
     setTimeout(() => shutdown(0), 50);
     return;
@@ -279,7 +431,7 @@ const server = http.createServer(async (req, res) => {
   sendJson(res, 404, { ok: false, error: `Unknown route: ${req.method} ${req.url}` });
 });
 
-const wss = new WebSocketServer({ noServer: true });
+const wss = new WebSocketServer({ noServer: true, maxPayload: WS_MAX_PAYLOAD });
 
 server.on('upgrade', (req, socket, head) => {
   if (req.url !== '/ext') {
@@ -287,8 +439,19 @@ server.on('upgrade', (req, socket, head) => {
     return;
   }
 
+  // Hardening: require a chrome-extension:// Origin. Non-browser local clients
+  // (which send no Origin) can no longer impersonate the extension.
+  // Limitation: the Origin header is client-supplied, so this only raises the
+  // bar against web pages / DNS rebinding; it is not proof of extension
+  // identity. The token-authenticated CLI is the only browser-driving client.
   const origin = req.headers.origin;
-  if (origin && !origin.startsWith('chrome-extension://')) {
+  if (!origin || !origin.startsWith('chrome-extension://')) {
+    socket.destroy();
+    return;
+  }
+
+  // The upgrade path needs the same DNS-rebinding guard as HTTP requests.
+  if (!isAllowedHost(req)) {
     socket.destroy();
     return;
   }
@@ -359,14 +522,16 @@ async function listenWithFallback() {
   throw new Error(`No free port found between ${START_PORT} and ${MAX_PORT}`);
 }
 
-server.on('error', (error) => {
-  log('HTTP server error:', error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
-
 listenWithFallback()
   .then(() => {
     log(`Listening on http://${HOST}:${activePort}`);
+    // Register the persistent fatal handler only after listening succeeds.
+    // Registering it earlier makes the first EADDRINUSE call process.exit(1)
+    // before listenWithFallback can try the next port.
+    server.on('error', (error) => {
+      log('HTTP server error:', error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    });
     resetIdleTimer();
   })
   .catch((error) => {
