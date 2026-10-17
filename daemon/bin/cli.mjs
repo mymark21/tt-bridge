@@ -3,6 +3,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -11,15 +12,14 @@ const HOST = process.env.AGENT_BROWSER_BRIDGE_HOST || '127.0.0.1';
 const START_PORT = Number(process.env.AGENT_BROWSER_BRIDGE_PORT || '19826');
 const MAX_PORT = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_PORT || '19835');
 const DAEMON_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), './daemon.mjs');
+const require = createRequire(import.meta.url);
 let activePort = null;
 
-// Shared-secret auth: the daemon stores its token in the user config directory
-// with 0600 permissions. Only send it to routes that actually require auth, so
-// the token never leaks to an unrelated local service that happens to occupy a
-// port in the discovery range.
+// 共享密钥鉴权 (P0-1):daemon 会把 token 以 0600 存到用户 config 目录。
+// 这里读取它(惰性重读,因为它在 daemon 首次启动时才创建),但只对需要鉴权的
+// 路由作为 Bearer 头发送。/status 和端口探测是公开路由,绝不能携带 token,
+// 否则任何能监听本机流量的进程都能拿到它。
 const TOKEN_FILE = path.join(os.homedir(), '.config', 'tt-bridge', 'token');
-const AUTHENTICATED_ROUTES = new Set(['/command', '/shutdown']);
-
 function readAuthToken() {
   try {
     return fs.readFileSync(TOKEN_FILE, 'utf8').trim() || null;
@@ -27,15 +27,7 @@ function readAuthToken() {
     return null;
   }
 }
-
-function authHeaders(urlPath) {
-  const route = urlPath.split('?')[0];
-  if (!AUTHENTICATED_ROUTES.has(route)) {
-    return {};
-  }
-  const token = readAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
+let AUTH_TOKEN = readAuthToken();
 
 function printHelp() {
   console.log(`tt-bridge — AI browser control via Chrome extension
@@ -57,15 +49,22 @@ Usage:
   tt-bridge sessions [--json]
   tt-bridge close-window [--human] [--workspace name] [--json]
 
+Default:
+  Commands target the user's currently visible normal Chrome window.
+
+Options:
+  --workspace <name>
+    Use an isolated automation workspace. Non-human workspaces may create dedicated incognito windows.
+
 Flags:
-  --human   Target the human's currently active browser tab (no separate window)
+  --human   Compatibility alias for --workspace human
 `);
 }
 
 function parseArgs(argv) {
   const options = {
     json: false,
-    workspace: 'default',
+    workspace: 'human',
     human: false,
     tabId: undefined,
     fullPage: false,
@@ -122,7 +121,15 @@ function isBridgeStatusPayload(payload) {
   );
 }
 
+// Only routes that actually require the shared secret may receive the token.
+// Discovery probes (/status) are unauthenticated by design.
+const AUTH_ROUTES = new Set(['/command', '/shutdown']);
+
 async function fetchJsonForPort(port, urlPath, init = {}, timeoutMs = 3000) {
+  const sendAuth = AUTH_ROUTES.has(urlPath);
+  if (sendAuth && !AUTH_TOKEN) {
+    AUTH_TOKEN = readAuthToken();
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -131,7 +138,7 @@ async function fetchJsonForPort(port, urlPath, init = {}, timeoutMs = 3000) {
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
-        ...authHeaders(urlPath),
+        ...(sendAuth && AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {}),
         ...(init.headers || {}),
       },
     });
@@ -192,6 +199,14 @@ async function ensureDaemonRunning() {
   const runningDaemon = await findRunningDaemon();
   if (runningDaemon) {
     return;
+  }
+
+  try {
+    require.resolve('ws');
+  } catch {
+    throw new Error(
+      'Cannot start daemon because dependency "ws" is missing. Re-extract the latest tt-bridge-cli.zip, or run "npm install" inside the tt-bridge-cli folder before starting TT Bridge.',
+    );
   }
 
   const child = spawn(process.execPath, [DAEMON_PATH], {

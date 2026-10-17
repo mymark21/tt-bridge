@@ -11,16 +11,14 @@ const HOST = process.env.AGENT_BROWSER_BRIDGE_HOST || '127.0.0.1';
 const START_PORT = Number(process.env.AGENT_BROWSER_BRIDGE_PORT || '19826');
 const MAX_PORT = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_PORT || '19835');
 const COMMAND_TIMEOUT_MS = Number(process.env.AGENT_BROWSER_BRIDGE_COMMAND_TIMEOUT_MS || '30000');
-const IDLE_TIMEOUT_MS = Number(process.env.AGENT_BROWSER_BRIDGE_IDLE_TIMEOUT_MS || String(24 * 60 * 60 * 1000));
+const IDLE_TIMEOUT_MS = Number(process.env.AGENT_BROWSER_BRIDGE_IDLE_TIMEOUT_MS || String(5 * 60 * 1000));
 const EXTENSION_WAIT_MS = Number(process.env.AGENT_BROWSER_BRIDGE_EXTENSION_WAIT_MS || '20000');
 const MAX_BODY_BYTES = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_BODY_BYTES || String(5 * 1024 * 1024));
+// Screenshots/highlights travel over the extension WebSocket, so the WS frame
+// cap is deliberately larger than the HTTP body cap.
+const MAX_WS_PAYLOAD = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_WS_PAYLOAD || String(100 * 1024 * 1024));
 const MAX_PENDING = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_PENDING || '256');
 const MAX_WAITERS = Number(process.env.AGENT_BROWSER_BRIDGE_MAX_WAITERS || '256');
-// Screenshot results are large base64 payloads, so the extension socket needs a
-// much higher cap than HTTP request bodies.
-const WS_MAX_PAYLOAD = Number(
-  process.env.AGENT_BROWSER_BRIDGE_WS_MAX_PAYLOAD || String(100 * 1024 * 1024),
-);
 
 const startedAt = Date.now();
 let activePort = START_PORT;
@@ -36,64 +34,40 @@ const extensionWaiters = new Set();
 /** @type {NodeJS.Timeout | null} */
 let idleTimer = null;
 
-// --- Shared-secret auth --------------------------------------------------
-// The daemon creates one random token on first start and stores it in the
-// user's config directory with 0600 permissions. Only processes that can read
-// that file (the same user's CLI) may drive the browser. The extension never
-// calls /command or /shutdown, so it does not need the token.
-
+// --- 共享密钥鉴权 (P0-1) --------------------------------------------------
+// daemon 启动时生成一次 token,以 0600 权限存到用户 config 目录。只有能读到
+// 该文件的进程(即同一用户运行的 CLI)才能驱动浏览器。扩展从不调用
+// /command 或 /shutdown,因此不需要 token。
 const TOKEN_DIR = path.join(os.homedir(), '.config', 'tt-bridge');
 const TOKEN_FILE = path.join(TOKEN_DIR, 'token');
-
 function getOrCreateToken() {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      const existing = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
-      if (existing) {
-        return existing;
-      }
-    } catch {
-      // Missing or unreadable — create one below.
-    }
-
-    const token = randomBytes(32).toString('hex');
-    try {
-      fs.mkdirSync(TOKEN_DIR, { recursive: true, mode: 0o700 });
-      // 'wx' keeps two simultaneously starting daemons from clobbering each
-      // other: the loser re-reads the winner's token instead of keeping a
-      // stale secret in memory.
-      fs.writeFileSync(TOKEN_FILE, token, { mode: 0o600, flag: 'wx' });
-      return token;
-    } catch (error) {
-      if (error && error.code === 'EEXIST') {
-        continue;
-      }
-      log('WARNING: could not persist auth token:', error instanceof Error ? error.message : String(error));
-      return token;
-    }
+  try {
+    const existing = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
+    if (existing) return existing;
+  } catch {
+    // 缺失/不可读 —— 在下面创建。
   }
-
-  log('WARNING: auth token file is unusable; using a non-persisted token');
-  return randomBytes(32).toString('hex');
+  const token = randomBytes(32).toString('hex');
+  try {
+    fs.mkdirSync(TOKEN_DIR, { recursive: true, mode: 0o700 });
+    fs.writeFileSync(TOKEN_FILE, token, { mode: 0o600 });
+  } catch (error) {
+    log('WARNING: could not persist auth token:', error instanceof Error ? error.message : String(error));
+  }
+  return token;
 }
-
 const AUTH_TOKEN = getOrCreateToken();
 
 function isAuthorized(req) {
   const header = req.headers.authorization || '';
   const match = /^Bearer\s+(.+)$/i.exec(header);
-  if (!match) {
-    return false;
-  }
+  if (!match) return false;
   const provided = Buffer.from(match[1]);
   const expected = Buffer.from(AUTH_TOKEN);
   return provided.length === expected.length && timingSafeEqual(provided, expected);
 }
 
-// --- Anti DNS-rebinding --------------------------------------------------
-// The Host header must be one of our own loopback authorities. A rebinding
-// attack resolves an attacker-controlled name to 127.0.0.1, but the Host
-// header still carries the attacker's name and is rejected here.
+// 防 DNS-rebinding (P0-2):Host 必须是我们自己的环回权威。
 function isAllowedHost(req) {
   const host = req.headers.host || '';
   return host === `127.0.0.1:${activePort}`
@@ -101,9 +75,8 @@ function isAllowedHost(req) {
     || host === `[::1]:${activePort}`;
 }
 
-// --- Anti CSRF -----------------------------------------------------------
-// Real web pages always send an http(s) Origin; the CLI sends none and the
-// extension sends chrome-extension://. Reject anything else.
+// 防 CSRF (P0-2):真实网页一定带 http(s) Origin;CLI 不带;扩展带
+// chrome-extension://。拒绝网页 Origin。
 function isForbiddenOrigin(req) {
   const origin = req.headers.origin;
   return Boolean(origin) && !origin.startsWith('chrome-extension://');
@@ -205,15 +178,12 @@ function readBody(req, maxBytes = MAX_BODY_BYTES) {
     let size = 0;
     let done = false;
     const onData = (chunk) => {
-      if (done) {
-        return;
-      }
+      if (done) return;
       size += chunk.length;
       if (size > maxBytes) {
         done = true;
         req.off('data', onData);
-        // Drain (discard) the rest without buffering so the socket survives
-        // and the caller can still receive the 413 response.
+        // 排空(丢弃)剩余数据但不缓冲,让 socket 存活、调用方仍能收到 413 响应。
         req.resume();
         const error = new Error('Request body too large');
         error.statusCode = 413;
@@ -222,7 +192,6 @@ function readBody(req, maxBytes = MAX_BODY_BYTES) {
       }
       chunks.push(Buffer.from(chunk));
     };
-
     req.on('data', onData);
     req.on('end', () => {
       if (!done) {
@@ -273,6 +242,7 @@ async function handleCommandRequest(req, res) {
       id,
       ok: false,
       error: error instanceof Error ? error.message : 'Extension not connected',
+      code: 'EXT_NOT_CONNECTED',
     });
     return;
   }
@@ -380,15 +350,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Reject requests whose Host is not a loopback authority of this daemon
-  // (DNS-rebinding protection).
+  // 防 DNS-rebinding (P0-2):拒绝目标不是本机环回权威的请求。
   if (!isAllowedHost(req)) {
     sendJson(res, 403, { ok: false, error: 'Forbidden host', code: 'FORBIDDEN' });
     return;
   }
-
-  // Reject browser Origins (CSRF protection). The CLI sends no Origin and the
-  // extension sends chrome-extension://.
+  // 防 CSRF (P0-2):直接拒绝网页来源(Origin)。
   if (isForbiddenOrigin(req)) {
     sendJson(res, 403, { ok: false, error: 'Forbidden origin', code: 'FORBIDDEN' });
     return;
@@ -431,7 +398,7 @@ const server = http.createServer(async (req, res) => {
   sendJson(res, 404, { ok: false, error: `Unknown route: ${req.method} ${req.url}` });
 });
 
-const wss = new WebSocketServer({ noServer: true, maxPayload: WS_MAX_PAYLOAD });
+const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_PAYLOAD });
 
 server.on('upgrade', (req, socket, head) => {
   if (req.url !== '/ext') {
@@ -439,18 +406,14 @@ server.on('upgrade', (req, socket, head) => {
     return;
   }
 
-  // Hardening: require a chrome-extension:// Origin. Non-browser local clients
-  // (which send no Origin) can no longer impersonate the extension.
-  // Limitation: the Origin header is client-supplied, so this only raises the
-  // bar against web pages / DNS rebinding; it is not proof of extension
-  // identity. The token-authenticated CLI is the only browser-driving client.
+  // 要求 chrome-extension:// 来源 (P1-1)。空 Origin(非浏览器的本地客户端)
+  // 绝不能冒充扩展。
   const origin = req.headers.origin;
   if (!origin || !origin.startsWith('chrome-extension://')) {
     socket.destroy();
     return;
   }
-
-  // The upgrade path needs the same DNS-rebinding guard as HTTP requests.
+  // 升级(upgrade)路径同样防 DNS-rebinding。
   if (!isAllowedHost(req)) {
     socket.destroy();
     return;
@@ -463,6 +426,8 @@ server.on('upgrade', (req, socket, head) => {
       } catch {
         // Ignore close errors.
       }
+      // P1-4:别让在途请求挂在旧 socket 上直到超时。
+      rejectPendingRequests('Extension connection superseded by a new connection');
     }
 
     extensionSocket = ws;
@@ -525,9 +490,9 @@ async function listenWithFallback() {
 listenWithFallback()
   .then(() => {
     log(`Listening on http://${HOST}:${activePort}`);
-    // Register the persistent fatal handler only after listening succeeds.
-    // Registering it earlier makes the first EADDRINUSE call process.exit(1)
-    // before listenWithFallback can try the next port.
+    // P2-3:持久的致命错误处理器只在 listen 成功后再挂。挂早了会在第一次
+    // EADDRINUSE 时先 process.exit(1),抢在 listenWithFallback 退到下一端口
+    // 之前,使整个回退循环变成死代码。
     server.on('error', (error) => {
       log('HTTP server error:', error instanceof Error ? error.message : String(error));
       process.exit(1);

@@ -24,8 +24,8 @@ Open an issue before starting a large or behavior-changing contribution so we ca
 ## Ground rules
 
 - Target the `main` branch. Do not open pull requests against tags or the release zips.
-- Change source files, not build output. Do not edit `tt-bridge-extension.zip`, `tt-bridge-cli.zip`, `chrome-extension/releases/`, `chrome-extension/dist/`, or `node_modules/`. `scripts/build-release.sh` builds into `build/`; the committed root zips are the frozen v1.0.4 release assets and must not be overwritten by contributors.
-- Do not bump versions. The maintainer bumps `chrome-extension/manifest.json`, `chrome-extension/package.json`, and `daemon/package.json` at release time.
+- Change source files, not release artifacts. Edit `chrome-extension/` (manifest + `dist/` bundle) and `daemon/bin/*.mjs`; do not edit the root `tt-bridge-extension.zip` / `tt-bridge-cli.zip`. `scripts/build-release.sh` packages the source into `build/` and must not overwrite the committed release assets.
+- Do not bump versions. The maintainer bumps `chrome-extension/manifest.json` and `daemon/package.json` (plus its lockfile) at release time.
 - Behavior changes need tests. If a Chrome-only path cannot be unit-tested, describe the manual steps and result in the pull request.
 - Never include credentials, cookies, browser profile data, or access tokens in an issue, pull request, log, or screenshot. Redact them.
 - Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md). Do not open a public issue or pull request for a security bug.
@@ -45,34 +45,38 @@ Open an issue before starting a large or behavior-changing contribution so we ca
 git clone https://github.com/mymark21/tt-bridge.git
 cd tt-bridge
 
-(cd chrome-extension && npm ci)
 (cd daemon && npm ci --omit=dev)
 ```
 
+The v1.0.5 extension source is the shipped `chrome-extension/dist` bundle; there
+is no TypeScript/Vite build step in this release. TypeScript source returns in
+v1.0.6.
+
 ## Build and test
 
-Run the extension checks:
-
-```bash
-cd chrome-extension
-npm run typecheck
-npm test
-npm run build
-```
-
-Run the full release build (this is what CI runs):
+Run the release packaging (this is what CI runs):
 
 ```bash
 ./scripts/build-release.sh
 ```
 
-It builds the extension, packages both zips into the repository root, and verifies their contents. It expects a clean checkout and does not rely on pre-existing `node_modules`.
+It packages `chrome-extension/` and `daemon/` into `build/`, validates the
+archive contents, and prints SHA-256. It never overwrites the committed root
+zips.
+
+Syntax-check the shipped JavaScript:
+
+```bash
+node --check daemon/bin/cli.mjs
+node --check daemon/bin/daemon.mjs
+node --check chrome-extension/dist/background.js
+```
 
 ### Manual extension test
 
-1. Run `cd chrome-extension && npm run build`.
-2. Open `chrome://extensions`, enable Developer mode, and choose **Load unpacked**.
-3. Select the `chrome-extension/` directory.
+1. Open `chrome://extensions`, enable Developer mode, and choose **Load unpacked**.
+2. Select the `chrome-extension/` directory.
+3. Start Serving from the popup and verify `tt-bridge ping` / `tt-bridge status`.
 4. Use a dedicated Chrome profile for testing, never a profile with real accounts.
 5. From the repository root, check the bridge:
 

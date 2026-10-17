@@ -6,7 +6,7 @@ Only the latest release of the public `v1.0.x` line receives security fixes.
 
 | Version | Supported |
 | --- | --- |
-| `1.0.x` (latest patch, currently `1.0.4`) | Yes |
+| `1.0.x` (latest patch, currently `1.0.5`) | Yes |
 | Earlier `1.0.x` releases | No, upgrade to the latest patch |
 | Private development builds | No public support |
 
@@ -58,4 +58,19 @@ Typically out of scope:
 
 ## Design notes
 
-The daemon binds to `127.0.0.1` only and intentionally has no user authentication: any local process running as your user can talk to it. Do not expose the daemon port to a network, tunnel it, or run it on a shared host. Reports that demonstrate a bypass of the loopback binding, or cross-origin access from a web page, are in scope and appreciated.
+The daemon binds to `127.0.0.1` only. Starting with v1.0.5, `/command` and
+`/shutdown` require a per-user bearer token stored in
+`~/.config/tt-bridge/token` (mode `0600`); `/status` and `/ping` remain public.
+
+The extension WebSocket (`/ext`) is not yet mutually authenticated. Origin
+checks and the loopback binding raise the bar, but a local process that can bind
+the daemon port can still impersonate the daemon to the extension, and a local
+client can connect to `/ext`. Do not expose the daemon port to a network, tunnel
+it, or run it on a shared host. Reports that demonstrate a bypass of the
+loopback binding, cross-origin access from a web page, or token leakage are in
+scope.
+
+Session expiry is enforced periodically (alarm/popup), so a command already in
+flight at the 30-minute boundary can complete. URL scheme blocking applies to
+debugging/attach paths; navigation validation is being hardened in the next
+patch.
