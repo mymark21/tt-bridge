@@ -60,6 +60,9 @@ orchestration, record/replay, and premium site packs remain private.
   `tt-bridge-cli.zip`, and `SHA256SUMS.txt` on a `v*` tag and attaches them to
   the GitHub Release. `scripts/build-release.sh` writes the same files to
   `build/` for local verification.
+- docs: the README is now a project-style homepage with a language switch and an
+  English edition in `README.en.md`; the full agent installation prompt is
+  preserved in a collapsed section at the end.
 - Older `v1.0.x` releases remain available under their tags but are no longer
   supported.
 
