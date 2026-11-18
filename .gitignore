@@ -2,5 +2,13 @@ node_modules/
 __pycache__/
 *.pyc
 .DS_Store
-
+dist/
+experience/_ledger/
+experience/index.json
+.worktrees/
 build/
+tmp/
+
+# Release artifacts are published as GitHub Release assets, never committed.
+/tt-bridge-*.zip
+/SHA256SUMS.txt

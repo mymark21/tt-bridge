@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TT Bridge",
-  "version": "1.0.6",
+  "version": "1.4.5",
   "description": "Persistent browser bridge for local AI agents. Avoid repeated Chrome takeover prompts by routing commands through an installed extension.",
   "permissions": [
     "debugger",
@@ -9,7 +9,9 @@
     "cookies",
     "activeTab",
     "alarms",
-    "storage"
+    "storage",
+    "identity",
+    "identity.email"
   ],
   "host_permissions": [
     "http://127.0.0.1/*",
@@ -34,5 +36,16 @@
       "32": "icons/icon-32.png"
     }
   },
-  "homepage_url": "https://github.com/mymark21/tt-bridge"
+  "homepage_url": "https://github.com/mymark21/tt-bridge",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "reload.html",
+        "reload.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

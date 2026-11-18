@@ -1,6 +1,6 @@
 # Contributing to TT Bridge
 
-Thanks for helping improve TT Bridge. This repository is the **public, stable edition** of the project (the `v1.0.x` line). It exists so existing users can keep installing a version that works, so compatibility comes before novelty here.
+Thanks for helping improve TT Bridge. This repository is the **public, stable edition** of the project (the `v1.4.x` line). It exists so existing users can keep installing a version that works, so compatibility comes before novelty here.
 
 Newer features are developed in a separate private tree. See [PORTING.md](PORTING.md) for how the two trees relate.
 
@@ -8,13 +8,13 @@ Newer features are developed in a separate private tree. See [PORTING.md](PORTIN
 
 Good candidates:
 
-- Bug fixes and regressions in the current `v1.0.x` behavior.
+- Bug fixes and regressions in the current `v1.4.x` behavior.
 - Compatibility fixes for supported Chrome and Node.js versions.
 - Documentation, tests, and small usability improvements that do not change the extension/daemon protocol.
 
 Out of scope for this repository:
 
-- New product features from the private development line (including typing and later work).
+- New product features from the private development line (paid/cloud/team modules).
 - Breaking changes to the CLI commands, daemon endpoints, or extension message protocol.
 - Raising the minimum Node.js version above 18.
 - Binary-only changes, including edits to the release zips.
@@ -24,7 +24,7 @@ Open an issue before starting a large or behavior-changing contribution so we ca
 ## Ground rules
 
 - Target the `main` branch. Do not open pull requests against tags or the release zips.
-- Change source files, not release artifacts. Edit `chrome-extension/` (manifest + `dist/` bundle) and `daemon/bin/*.mjs`; do not edit the root `tt-bridge-extension.zip` / `tt-bridge-cli.zip`. `scripts/build-release.sh` packages the source into `build/` and must not overwrite the committed release assets.
+- Change source files, not release artifacts. Edit `chrome-extension/src/` (TypeScript) and `daemon/bin/*.mjs`; `chrome-extension/dist/` is generated and not tracked, and the release zips are published only as GitHub Release assets. `scripts/build-release.sh` packages the source into `build/` and writes `build/SHA256SUMS.txt`; build outputs are never committed.
 - Do not bump versions. The maintainer bumps `chrome-extension/manifest.json` and `daemon/package.json` (plus its lockfile) at release time.
 - Behavior changes need tests. If a Chrome-only path cannot be unit-tested, describe the manual steps and result in the pull request.
 - Never include credentials, cookies, browser profile data, or access tokens in an issue, pull request, log, or screenshot. Redact them.
@@ -45,12 +45,12 @@ Open an issue before starting a large or behavior-changing contribution so we ca
 git clone https://github.com/mymark21/tt-bridge.git
 cd tt-bridge
 
-(cd daemon && npm ci --omit=dev)
+(cd chrome-extension && npm ci)
+(cd daemon && npm ci)
 ```
 
-The v1.0.5 extension source is the shipped `chrome-extension/dist` bundle; there
-is no TypeScript/Vite build step in this release. TypeScript source returns in
-v1.0.6.
+The extension is TypeScript/Vite source under `chrome-extension/src/`; run
+`npm run build` there before loading it in Chrome.
 
 ## Build and test
 
@@ -60,23 +60,23 @@ Run the release packaging (this is what CI runs):
 ./scripts/build-release.sh
 ```
 
-It packages `chrome-extension/` and `daemon/` into `build/`, validates the
-archive contents, and prints SHA-256. It never overwrites the committed root
-zips.
+It installs dependencies, runs the extension typecheck and tests, runs the
+daemon tests, builds `dist/`, packages `chrome-extension/` and `daemon/` into
+`build/`, validates the archive contents, and writes `build/SHA256SUMS.txt`.
+Build outputs stay untracked.
 
-Syntax-check the shipped JavaScript:
+Run the suites directly while iterating:
 
 ```bash
-node --check daemon/bin/cli.mjs
-node --check daemon/bin/daemon.mjs
-node --check chrome-extension/dist/background.js
+(cd chrome-extension && npm run typecheck && npm test && npm run build)
+(cd daemon && npm test)
 ```
 
 ### Manual extension test
 
 1. Open `chrome://extensions`, enable Developer mode, and choose **Load unpacked**.
-2. Select the `chrome-extension/` directory.
-3. Start Serving from the popup and verify `tt-bridge ping` / `tt-bridge status`.
+2. After `npm run build`, select the `chrome-extension/` directory (not `dist/`).
+3. Click **允许 AI 控制** once in the popup; after it connects, use **复制连接指令** and hand the command to the agent. Verify with `tt-bridge ping` / `tt-bridge status`.
 4. Use a dedicated Chrome profile for testing, never a profile with real accounts.
 5. From the repository root, check the bridge:
 
@@ -117,9 +117,9 @@ test(extension): cover daemon discovery fallback ports
 
 Maintainers cut stable releases from `main`:
 
-1. Bump the version in the three manifests listed above.
-2. Run `./scripts/build-release.sh` (outputs land in `build/`).
-3. Copy the validated `build/tt-bridge-extension.zip` and `build/tt-bridge-cli.zip` to the repository root only as part of a versioned release, and update the release tag/assets accordingly.
-4. Tag `v1.0.x` and attach both zips to the GitHub release.
+1. Bump the version in `chrome-extension/manifest.json`, `chrome-extension/package.json`, `daemon/package.json`, and `daemon/package-lock.json`.
+2. Run `./scripts/build-release.sh` (outputs land in `build/`, including `SHA256SUMS.txt`).
+3. Verify the archives locally. Do not commit `build/` or the zips.
+4. Tag `vX.Y.Z` and push the tag. `.github/workflows/release.yml` checks the tag matches the package version, rebuilds from source, and attaches `tt-bridge-extension.zip`, `tt-bridge-cli.zip`, and `SHA256SUMS.txt` to the GitHub Release.
 
 Release and promotion details are in [PORTING.md](PORTING.md).
