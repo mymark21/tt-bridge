@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a reproducible problem in the public v1.0.x edition
+about: Report a reproducible problem in the public v1.4.x edition
 title: "[Bug] "
 labels: bug
 assignees: ""
@@ -36,6 +36,6 @@ assignees: ""
 
 ## Additional context
 
-- [ ] I reproduced this on the latest `v1.0.x` release.
+- [ ] I reproduced this on the latest `v1.4.x` release.
 - [ ] I am not reporting a security vulnerability.
 - [ ] I tested with a dedicated Chrome profile, not one containing real accounts.

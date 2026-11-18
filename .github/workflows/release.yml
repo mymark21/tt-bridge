@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            chrome-extension/package-lock.json
+            daemon/package-lock.json
+
+      - name: Verify tag matches package version
+        run: |
+          version="$(node -p "require('./chrome-extension/package.json').version")"
+          test "v${version}" = "${GITHUB_REF_NAME}" || {
+            echo "Tag ${GITHUB_REF_NAME} does not match package version v${version}" >&2
+            exit 1
+          }
+
+      - name: Build release
+        run: bash scripts/build-release.sh
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" \
+              build/tt-bridge-extension.zip \
+              build/tt-bridge-cli.zip \
+              build/SHA256SUMS.txt \
+              --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              build/tt-bridge-extension.zip \
+              build/tt-bridge-cli.zip \
+              build/SHA256SUMS.txt \
+              --title "${GITHUB_REF_NAME}" \
+              --generate-notes
+          fi

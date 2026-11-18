@@ -1,6 +1,6 @@
 ## Summary
 
-<!-- What changes, and why? Keep it focused on the stable v1.0.x line. -->
+<!-- What changes, and why? Keep it focused on the stable v1.4.x line. -->
 
 ## Related issue
 
@@ -22,7 +22,7 @@ npm run build
 
 ## Checklist
 
-- [ ] This targets `main` and stays within the public `v1.0.x` scope.
+- [ ] This targets `main` and stays within the public `v1.4.x` scope.
 - [ ] No private/development-only features are included.
 - [ ] Source changes include tests for the changed behavior.
 - [ ] No generated artifacts are hand-edited (`dist/`, `releases/`, `tt-bridge-*.zip`, `node_modules/`).
